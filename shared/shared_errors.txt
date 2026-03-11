@@ -1,0 +1,4 @@
+
+> job-ops-shared@1.0.0 check:types
+> tsc --noEmit
+

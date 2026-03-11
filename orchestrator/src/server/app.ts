@@ -1,0 +1,271 @@
+/**
+ * Express app factory (useful for tests).
+ */
+
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { dirname, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { unauthorized } from "@infra/errors";
+import {
+  apiErrorHandler,
+  fail,
+  legacyApiResponseShim,
+  notFoundApiHandler,
+  requestContextMiddleware,
+} from "@infra/http";
+import { logger } from "@infra/logger";
+import cors from "cors";
+import express from "express";
+import cookieParser from "cookie-parser";
+import { createBullBoard } from "@bull-board/api";
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import { ExpressAdapter } from "@bull-board/express";
+import { apiRouter } from "./api/index";
+import { getDataDir } from "./config/dataDir";
+import { isDemoMode } from "./config/demo";
+import { resolveTracerRedirect } from "./services/tracer-links";
+import { queues } from "./queues";
+import { initRedisBlacklist } from "./auth/redis-blacklist";
+import { initRateLimiter } from "./middleware/rateLimiter";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export function createBasicAuthGuard() {
+  function getAuthConfig() {
+    const user = process.env.BASIC_AUTH_USER || "";
+    const pass = process.env.BASIC_AUTH_PASSWORD || "";
+    return {
+      user,
+      pass,
+      enabled: user.length > 0 && pass.length > 0,
+    };
+  }
+
+  function isAuthorized(req: express.Request): boolean {
+    const { user: authUser, pass: authPass, enabled } = getAuthConfig();
+    if (!enabled) return false;
+    const authHeader = req.headers.authorization || "";
+    if (!authHeader.startsWith("Basic ")) return false;
+    const encoded = authHeader.slice("Basic ".length).trim();
+    let decoded = "";
+    try {
+      decoded = Buffer.from(encoded, "base64").toString("utf-8");
+    } catch {
+      return false;
+    }
+    const separatorIndex = decoded.indexOf(":");
+    if (separatorIndex === -1) return false;
+    const user = decoded.slice(0, separatorIndex);
+    const pass = decoded.slice(separatorIndex + 1);
+    return user === authUser && pass === authPass;
+  }
+
+  function isPublicReadOnlyRoute(method: string, path: string): boolean {
+    const normalizedMethod = method.toUpperCase();
+    const normalizedPath = path.split("?")[0] || path;
+    if (
+      normalizedMethod === "POST" &&
+      normalizedPath === "/api/visa-sponsors/search"
+    )
+      return true;
+    return false;
+  }
+
+  function requiresAuth(method: string, path: string): boolean {
+    if (isPublicReadOnlyRoute(method, path)) return false;
+    if (path.startsWith("/api/tracer-links")) {
+      return method.toUpperCase() !== "OPTIONS";
+    }
+    return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
+  }
+
+  const middleware = (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const { enabled } = getAuthConfig();
+    if (!enabled || !requiresAuth(req.method, req.path)) return next();
+    if (isAuthorized(req)) return next();
+    fail(res, unauthorized("Authentication required"));
+  };
+
+  return {
+    middleware,
+    isAuthorized,
+    basicAuthEnabled: getAuthConfig().enabled,
+  };
+}
+
+export function createApp() {
+  const app = express();
+  const authGuard = createBasicAuthGuard();
+
+  // Initialize Redis for auth blacklist and rate limiting
+  const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+  const redisClient = initRedisBlacklist(redisUrl);
+  initRateLimiter(redisClient);
+
+  // Bull Board setup for queue monitoring
+  const serverAdapter = new ExpressAdapter();
+  serverAdapter.setBasePath("/admin/queues");
+
+  createBullBoard({
+    queues: Object.values(queues).map((q) => new BullMQAdapter(q)),
+    serverAdapter,
+  });
+
+  // Mount Bull Board before auth guard to make it always accessible
+  app.use("/admin/queues", serverAdapter.getRouter());
+
+  const handleTracerRedirect = async (
+    req: express.Request,
+    res: express.Response,
+    slug: string,
+    route: string,
+  ) => {
+    try {
+      const redirect = await resolveTracerRedirect({
+        token: slug,
+        requestId:
+          (res.getHeader("x-request-id") as string | undefined) ?? null,
+        ip: req.ip ?? null,
+        userAgent: req.header("user-agent") ?? null,
+        referrer: req.header("referer") ?? null,
+      });
+
+      if (!redirect) {
+        logger.warn("Tracer link not found", {
+          route,
+          token: slug,
+        });
+        res.status(404).type("text/plain; charset=utf-8").send("Not found");
+        return;
+      }
+
+      logger.info("Tracer link redirected", {
+        route,
+        token: slug,
+        jobId: redirect.jobId,
+      });
+      res.set("Cache-Control", "no-store");
+      res.set("Pragma", "no-cache");
+      res.set("Expires", "0");
+      res.redirect(302, redirect.destinationUrl);
+    } catch (error) {
+      logger.error("Tracer redirect failed", {
+        route,
+        token: slug,
+        error,
+      });
+      res.status(500).type("text/plain; charset=utf-8").send("Internal error");
+    }
+  };
+
+  app.use(cors());
+  app.use(cookieParser());
+  app.use(requestContextMiddleware());
+  app.use(express.json({ limit: "5mb" }));
+  app.use(legacyApiResponseShim());
+
+  // Logging middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      logger.info("HTTP request completed", {
+        method: req.method,
+        path: req.path,
+        status: res.statusCode,
+        durationMs: duration,
+      });
+    });
+    next();
+  });
+
+  // Optional Basic Auth for write access (read-only by default)
+  app.use(authGuard.middleware);
+
+  // API routes
+  app.use("/api", apiRouter);
+  app.use(notFoundApiHandler());
+
+  app.get("/cv/:slug", async (req, res) => {
+    const slug = req.params.slug?.trim();
+    if (!slug) {
+      res.status(404).type("text/plain; charset=utf-8").send("Not found");
+      return;
+    }
+    await handleTracerRedirect(req, res, slug, "GET /cv/:slug");
+  });
+
+  // Serve static files for generated PDFs
+  const pdfDir = join(getDataDir(), "pdfs");
+  if (isDemoMode()) {
+    const demoPdfPath = join(pdfDir, "demo.pdf");
+    app.get("/pdfs/*", (_req, res) => {
+      res.sendFile(demoPdfPath, (error) => {
+        if (error) res.status(404).end();
+      });
+    });
+  }
+  app.use("/pdfs", express.static(pdfDir));
+
+  // Health check
+  app.get("/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Serve client app when dist/client exists (production or after build:client)
+  const clientDir = join(__dirname, "../../dist/client");
+  const indexPath = join(clientDir, "index.html");
+  if (existsSync(indexPath)) {
+    const packagedDocsDir = join(__dirname, "../../dist/docs");
+    const workspaceDocsDir = join(__dirname, "../../../docs-site/build");
+    const docsDir = existsSync(packagedDocsDir)
+      ? packagedDocsDir
+      : workspaceDocsDir;
+    const docsIndexPath = join(docsDir, "index.html");
+    let cachedDocsIndexHtml: string | null = null;
+
+    if (existsSync(docsIndexPath)) {
+      app.use("/docs", express.static(docsDir));
+      app.get("/docs/*", async (req, res, next) => {
+        if (!req.accepts("html")) {
+          next();
+          return;
+        }
+        if (extname(req.path)) {
+          next();
+          return;
+        }
+        if (!cachedDocsIndexHtml) {
+          cachedDocsIndexHtml = await readFile(docsIndexPath, "utf-8");
+        }
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.send(cachedDocsIndexHtml);
+      });
+    }
+
+    app.use(express.static(clientDir));
+
+    // SPA fallback
+    let cachedIndexHtml: string | null = null;
+    app.get("*", async (req, res) => {
+      if (!req.accepts("html")) {
+        res.status(404).end();
+        return;
+      }
+      if (!cachedIndexHtml) {
+        cachedIndexHtml = await readFile(indexPath, "utf-8");
+      }
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(cachedIndexHtml);
+    });
+  }
+
+  app.use(apiErrorHandler);
+
+  return app;
+}

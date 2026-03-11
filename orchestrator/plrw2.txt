@@ -1,0 +1,32 @@
+
+Running 1 test using 1 worker
+
+  Ô£ÿ  1 [chromium] ÔÇ║ e2e\monitoring-navigation.spec.ts:4:3 ÔÇ║ Monitoring Navigation ÔÇ║ clicking Monitoring in sidebar opens the monitoring page within the app (13.2s)
+
+
+  1) [chromium] ÔÇ║ e2e\monitoring-navigation.spec.ts:4:3 ÔÇ║ Monitoring Navigation ÔÇ║ clicking Monitoring in sidebar opens the monitoring page within the app 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/monitoring/[39m
+    Received string:  [31m"http://localhost:3111/admin/queues"[39m
+    Timeout: 10000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 10000ms[22m
+    [2m    14 ├ù unexpected value "http://localhost:3111/admin/queues"[22m
+
+
+      30 |
+      31 |     // Verify it navigates to /monitoring
+    > 32 |     await expect(page).toHaveURL(/\/monitoring/);
+         |                        ^
+      33 |
+      34 |     // Verify we see Monitoring content
+      35 |     await expect(page.getByRole('heading', { name: /Queue Health/i })).toBeVisible({ timeout: 10_000 });
+        at C:\Users\ander\Downloads\Job_ops\job-ops\orchestrator\e2e\monitoring-navigation.spec.ts:32:24
+
+    Error Context: test-results\monitoring-navigation-Moni-66b87-itoring-page-within-the-app-chromium\error-context.md
+
+  1 failed
+    [chromium] ÔÇ║ e2e\monitoring-navigation.spec.ts:4:3 ÔÇ║ Monitoring Navigation ÔÇ║ clicking Monitoring in sidebar opens the monitoring page within the app 

@@ -1,0 +1,149 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/ander/Downloads/Job_ops/job-ops/orchestrator[39m
+
+(node:25568) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+[90mstdout[2m | src/server/api/routes/post-application-review.test.ts[2m > [22m[2mPost-Application Review Workflow API[2m > [22m[2mlists pending inbox items
+[22m[39m­ƒöº Running database migrations...
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > lists pending inbox items
+          
+        ************************************************************
+        *                                                          *
+        *  WARNING: Running SQL directly from the browser can have *
+        *  security implications. Even if your database is         *
+        *  protected by Row-Level Security (RLS), use it at your   *
+        *  own risk. This approach is great for fast prototyping,  *
+        *  but ensure proper safeguards are in place to prevent    *
+        *  misuse or execution of expensive SQL queries by your    *
+        *  end users.                                              *
+        *                                                          *
+        *  If you've assessed the risks, suppress this message     *
+        *  using the disableWarningInBrowsers configuration        *
+        *  parameter.                                              *
+        *                                                          *
+        ************************************************************
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > lists pending inbox items
+          
+        ************************************************************
+        *                                                          *
+        *  WARNING: Running SQL directly from the browser can have *
+        *  security implications. Even if your database is         *
+        *  protected by Row-Level Security (RLS), use it at your   *
+        *  own risk. This approach is great for fast prototyping,  *
+        *  but ensure proper safeguards are in place to prevent    *
+        *  misuse or execution of expensive SQL queries by your    *
+        *  end users.                                              *
+        *                                                          *
+        *  If you've assessed the risks, suppress this message     *
+        *  using the disableWarningInBrowsers configuration        *
+        *  parameter.                                              *
+        *                                                          *
+        ************************************************************
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > lists pending inbox items
+          
+        ************************************************************
+        *                                                          *
+        *  WARNING: Running SQL directly from the browser can have *
+        *  security implications. Even if your database is         *
+        *  protected by Row-Level Security (RLS), use it at your   *
+        *  own risk. This approach is great for fast prototyping,  *
+        *  but ensure proper safeguards are in place to prevent    *
+        *  misuse or execution of expensive SQL queries by your    *
+        *  end users.                                              *
+        *                                                          *
+        *  If you've assessed the risks, suppress this message     *
+        *  using the disableWarningInBrowsers configuration        *
+        *  parameter.                                              *
+        *                                                          *
+        ************************************************************
+
+[90mstdout[2m | src/server/api/routes/post-application-review.test.ts[2m > [22m[2mPost-Application Review Workflow API[2m > [22m[2mlists pending inbox items
+[22m[39m­ƒÄë Database migrations complete!
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > lists pending inbox items
+ÔØî Migration failed: Error: process.exit unexpectedly called with "0"
+    at process.exit (file:///C:/Users/ander/Downloads/Job_ops/job-ops/orchestrator/node_modules/vitest/dist/chunks/startModuleRunner.DpqpB8k3.js:766:9)
+    at C:/Users/ander/Downloads/Job_ops/job-ops/orchestrator/src/server/db/migrate.ts:28:11
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at VitestModuleEvaluator._runInlinedModule (file:///C:/Users/ander/Downloads/Job_ops/job-ops/orchestrator/node_modules/vitest/dist/module-evaluator.js:197:4)
+    at VitestModuleRunner.directRequest (file:///C:/Users/ander/Downloads/Job_ops/job-ops/orchestrator/node_modules/vite/dist/node/module-runner.js:1284:61)
+    at VitestModuleRunner.cachedRequest (file:///C:/Users/ander/Downloads/Job_ops/job-ops/orchestrator/node_modules/vite/dist/node/module-runner.js:1180:76)
+    at startServer (C:/Users/ander/Downloads/Job_ops/job-ops/orchestrator/src/server/api/routes/test-utils.ts:105:3)
+    at C:/Users/ander/Downloads/Job_ops/job-ops/orchestrator/src/server/api/routes/post-application-review.test.ts:17:46
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > approves an inbox item and writes stage event
+ÔØî DATABASE_URL environment variable is required. Please set it to your Neon PostgreSQL connection string.
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > returns conflict on second approve and increments sync-run approval once
+ÔØî DATABASE_URL environment variable is required. Please set it to your Neon PostgreSQL connection string.
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > denies an inbox item as ignored
+ÔØî DATABASE_URL environment variable is required. Please set it to your Neon PostgreSQL connection string.
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > counts no-suggested-match approve items as skipped, not failed
+ÔØî DATABASE_URL environment variable is required. Please set it to your Neon PostgreSQL connection string.
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > lists messages for a sync run
+ÔØî DATABASE_URL environment variable is required. Please set it to your Neon PostgreSQL connection string.
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > approves rejected target and sets closed stage with rejected outcome
+ÔØî DATABASE_URL environment variable is required. Please set it to your Neon PostgreSQL connection string.
+
+stderr | src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > approves withdrawn target and sets closed stage with withdrawn outcome
+ÔØî DATABASE_URL environment variable is required. Please set it to your Neon PostgreSQL connection string.
+
+ [31mÔØ»[39m src/server/api/routes/post-application-review.test.ts [2m([22m[2m8 tests[22m[2m | [22m[31m8 failed[39m[2m)[22m[33m 1667[2mms[22m[39m
+[31m     [31m├ù[31m lists pending inbox items[39m[33m 1629[2mms[22m[39m
+[31m     [31m├ù[31m approves an inbox item and writes stage event[39m[32m 7[2mms[22m[39m
+[31m     [31m├ù[31m returns conflict on second approve and increments sync-run approval once[39m[32m 6[2mms[22m[39m
+[31m     [31m├ù[31m denies an inbox item as ignored[39m[32m 4[2mms[22m[39m
+[31m     [31m├ù[31m counts no-suggested-match approve items as skipped, not failed[39m[32m 5[2mms[22m[39m
+[31m     [31m├ù[31m lists messages for a sync run[39m[32m 5[2mms[22m[39m
+[31m     [31m├ù[31m approves rejected target and sets closed stage with rejected outcome[39m[32m 5[2mms[22m[39m
+[31m     [31m├ù[31m approves withdrawn target and sets closed stage with withdrawn outcome[39m[32m 5[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 8 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > lists pending inbox items
+Error: process.exit unexpectedly called with "1"
+ ÔØ» src/server/db/migrate.ts:31:11
+     29| } catch (error) {
+     30|   console.error("ÔØî Migration failed:", error);
+     31|   process.exit(1);
+       |           ^
+     32| }
+     33| 
+ ÔØ» startServer src/server/api/routes/test-utils.ts:105:3
+ ÔØ» src/server/api/routes/post-application-review.test.ts:17:46
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/8]ÔÄ»
+
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > approves an inbox item and writes stage event
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > returns conflict on second approve and increments sync-run approval once
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > denies an inbox item as ignored
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > counts no-suggested-match approve items as skipped, not failed
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > lists messages for a sync run
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > approves rejected target and sets closed stage with rejected outcome
+ FAIL  src/server/api/routes/post-application-review.test.ts > Post-Application Review Workflow API > approves withdrawn target and sets closed stage with withdrawn outcome
+Error: process.exit unexpectedly called with "1"
+ ÔØ» src/server/db/migrate.ts:17:11
+     15|     "ÔØî DATABASE_URL environment variable is required. Please set it toÔÇª
+     16|   );
+     17|   process.exit(1);
+       |           ^
+     18| }
+     19| 
+ ÔØ» startServer src/server/api/routes/test-utils.ts:105:3
+ ÔØ» src/server/api/routes/post-application-review.test.ts:17:46
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/8]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m8 failed[39m[22m[90m (8)[39m
+[2m   Start at [22m 17:59:39
+[2m   Duration [22m 2.87s[2m (transform 194ms, setup 139ms, import 75ms, tests 1.67s, environment 591ms)[22m
+

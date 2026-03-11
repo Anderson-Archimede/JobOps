@@ -1,0 +1,24 @@
+
+Running 1 test using 1 worker
+
+  Ô£ÿ  1 [chromium] ÔÇ║ e2e\monitoring-navigation.spec.ts:4:3 ÔÇ║ Monitoring Navigation ÔÇ║ clicking Monitoring in sidebar opens the monitoring page within the app (3.6s)
+
+
+  1) [chromium] ÔÇ║ e2e\monitoring-navigation.spec.ts:4:3 ÔÇ║ Monitoring Navigation ÔÇ║ clicking Monitoring in sidebar opens the monitoring page within the app 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3001/
+    Call log:
+    [2m  - navigating to "http://localhost:3001/", waiting until "load"[22m
+
+
+       6 |   }) => {
+       7 |     // Navigate to homepage
+    >  8 |     await page.goto("/");
+         |                ^
+       9 |     await page.waitForLoadState("domcontentloaded");
+      10 |
+      11 |     // Handle onboarding if necessary
+        at C:\Users\ander\Downloads\Job_ops\job-ops\orchestrator\e2e\monitoring-navigation.spec.ts:8:16
+
+  1 failed
+    [chromium] ÔÇ║ e2e\monitoring-navigation.spec.ts:4:3 ÔÇ║ Monitoring Navigation ÔÇ║ clicking Monitoring in sidebar opens the monitoring page within the app 
