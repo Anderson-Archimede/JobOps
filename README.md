@@ -7,7 +7,7 @@
 [![Maintainer](https://img.shields.io/badge/maintainer-Anderson--Archimede-blue)](https://github.com/Anderson-Archimede)
 [![Cloud Waitlist](https://img.shields.io/badge/☁️_Cloud-Join_Waitlist-orange?style=flat-square)](https://try.jobops.app?utm_source=github&utm_medium=badge&utm_campaign=waitlist)
 
-<img width="1200" height="600" alt="Jobops-banner-900" src="https://github.com/user-attachments/assets/e929e389-2ebb-4de1-82c6-8e136b849b78" />
+<img width="1200" height="600" alt="Jobops-banner-900" src="https://github.com/user-attachments/assets/4d25ca74-a4fb-4338-a98d-ee9253d2d224" />
 
 Stop applying blind.
 
