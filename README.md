@@ -1,6 +1,3 @@
-![1773261797334](image/README/1773261797334.png)![1773261802940](image/README/1773261802940.png)![1773262420497](image/README/1773262420497.png)# JobOps: Your Ironman Suit for Job Hunting
-
-
 [![Stars](https://img.shields.io/github/stars/Anderson-Archimede/JobOps?style=social)](https://github.com/Anderson-Archimede/JobOps)
 [![GHCR](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker&logoColor=white)](https://github.com/Anderson-Archimede/JobOps/pkgs/container/job-ops)
 [![Release](https://github.com/Anderson-Archimede/JobOps/actions/workflows/ghcr.yml/badge.svg)](https://github.com/Anderson-Archimede/JobOps/actions/workflows/ghcr.yml)
@@ -9,7 +6,7 @@
 
 <img width="1200" height="600" alt="Jobops-banner-900" src="https://github.com/user-attachments/assets/e929e389-2ebb-4de1-82c6-8e136b849b78" />
 
-Stop applying blind.
+JobOps: Your Ironman Suit for Job Hunting, Stop applying blind.
 
 Scrapes major job boards (LinkedIn, Indeed, Glassdoor & more), AI-scores suitability, tailors resumes (RxResume), and tracks application emails automatically.
 
