@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/client"
+      }
+    }
+  ],
+  "buildCommand": "npm run build:client",
+  "outputDirectory": "dist/client",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://jobops.onrender.com/api/$1"
+    },
+    {
+      "src": "/pdfs/(.*)",
+      "dest": "https://jobops.onrender.com/pdfs/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
+
