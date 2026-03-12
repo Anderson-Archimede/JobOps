@@ -17,9 +17,9 @@ function mapThread(row: typeof jobChatThreads.$inferSelect): JobChatThread {
     id: row.id,
     jobId: row.jobId,
     title: row.title,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    lastMessageAt: row.lastMessageAt,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    lastMessageAt: row.lastMessageAt?.toISOString() ?? null,
   };
 }
 
@@ -35,8 +35,8 @@ function mapMessage(row: typeof jobChatMessages.$inferSelect): JobChatMessage {
     tokensOut: row.tokensOut,
     version: row.version,
     replacesMessageId: row.replacesMessageId,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -53,8 +53,8 @@ function mapRun(row: typeof jobChatRuns.$inferSelect): JobChatRun {
     startedAt: row.startedAt,
     completedAt: row.completedAt,
     requestId: row.requestId,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -112,7 +112,7 @@ export async function createThread(input: {
   title?: string | null;
 }): Promise<JobChatThread> {
   const id = randomUUID();
-  const now = new Date().toISOString();
+  const now = new Date();
 
   await db.insert(jobChatThreads).values({
     id,
@@ -132,14 +132,14 @@ export async function createThread(input: {
 
 export async function touchThread(
   threadId: string,
-  lastMessageAt?: string,
+  lastMessageAt?: string | Date,
 ): Promise<void> {
-  const now = new Date().toISOString();
+  const now = new Date();
   await db
     .update(jobChatThreads)
     .set({
       updatedAt: now,
-      ...(lastMessageAt !== undefined ? { lastMessageAt } : {}),
+      ...(lastMessageAt !== undefined ? { lastMessageAt: new Date(lastMessageAt) } : {}),
     })
     .where(eq(jobChatThreads.id, threadId));
 }
@@ -184,7 +184,7 @@ export async function createMessage(input: {
   replacesMessageId?: string | null;
 }): Promise<JobChatMessage> {
   const id = randomUUID();
-  const now = new Date().toISOString();
+  const now = new Date();
 
   await db.insert(jobChatMessages).values({
     id,
@@ -219,7 +219,7 @@ export async function updateMessage(
     tokensOut?: number | null;
   },
 ): Promise<JobChatMessage | null> {
-  const now = new Date().toISOString();
+  const now = new Date();
 
   await db
     .update(jobChatMessages)
@@ -266,7 +266,7 @@ export async function createRun(input: {
 }): Promise<JobChatRun> {
   const id = randomUUID();
   const startedAt = Date.now();
-  const now = new Date(startedAt).toISOString();
+  const now = new Date();
 
   await db.insert(jobChatRuns).values({
     id,
@@ -326,7 +326,7 @@ export async function completeRun(
   },
 ): Promise<JobChatRun | null> {
   const nowEpoch = Date.now();
-  const nowIso = new Date(nowEpoch).toISOString();
+  const now = new Date();
 
   await db
     .update(jobChatRuns)
@@ -335,7 +335,7 @@ export async function completeRun(
       completedAt: nowEpoch,
       errorCode: input.errorCode ?? null,
       errorMessage: input.errorMessage ?? null,
-      updatedAt: nowIso,
+      updatedAt: now,
     })
     .where(eq(jobChatRuns.id, runId));
 
@@ -351,7 +351,7 @@ export async function completeRunIfRunning(
   },
 ): Promise<JobChatRun | null> {
   const nowEpoch = Date.now();
-  const nowIso = new Date(nowEpoch).toISOString();
+  const now = new Date();
 
   await db
     .update(jobChatRuns)
@@ -360,7 +360,7 @@ export async function completeRunIfRunning(
       completedAt: nowEpoch,
       errorCode: input.errorCode ?? null,
       errorMessage: input.errorMessage ?? null,
-      updatedAt: nowIso,
+      updatedAt: now,
     })
     .where(and(eq(jobChatRuns.id, runId), eq(jobChatRuns.status, "running")));
 

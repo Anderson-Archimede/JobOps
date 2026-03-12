@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/button';
 import { useSearch } from '../hooks/useSearch';
 import { useSystemStatus } from '../hooks/useSystemStatus';
 import { useNotifications } from '../hooks/useNotifications';
+import { useAuth } from '../contexts/AuthContext';
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -48,6 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   const { query, setQuery, results, isLoading, categories, clearSearch } = useSearch();
   const { status, healthCheck } = useSystemStatus();
   const { count: notificationCount } = useNotifications();
+  const { user, isAuthenticated, logout } = useAuth();
   
   // State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -379,7 +381,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
+            <DropdownMenuLabel>
+              {isAuthenticated ? (
+                <div className="flex flex-col">
+                  <span>{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : (user?.email || 'Invité')}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal tabular-nums">{user?.email}</span>
+                </div>
+              ) : (
+                'Mon compte'
+              )}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/profile')}>
               <UserCircle className="mr-2 h-4 w-4" />
@@ -394,7 +405,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
               Raccourcis clavier
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => alert('Déconnexion')}>
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOut className="mr-2 h-4 w-4" />
               Déconnexion
             </DropdownMenuItem>

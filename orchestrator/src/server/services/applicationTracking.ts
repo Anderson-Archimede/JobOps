@@ -191,15 +191,15 @@ export async function updateStageEvent(
     : undefined;
   const hasOutcome = Object.hasOwn(payload, "outcome");
 
-  db.transaction((tx) => {
-    const event = tx
+  await db.transaction(async (tx) => {
+    const [event] = await tx
       .select()
       .from(stageEvents)
       .where(eq(stageEvents.id, eventId))
-      .get();
+      .limit(1);
     if (!event) throw new Error("Event not found");
 
-    const updates: Partial<typeof stageEvents.$inferInsert> = {};
+    const updates: any = {};
     if (toStage) updates.toStage = toStage;
     if (occurredAt) updates.occurredAt = occurredAt;
     if (parsedMetadata !== undefined) {
@@ -213,26 +213,24 @@ export async function updateStageEvent(
       updates.outcome = null;
     }
 
-    tx.update(stageEvents)
+    await tx.update(stageEvents)
       .set(updates)
-      .where(eq(stageEvents.id, eventId))
-      .run();
+      .where(eq(stageEvents.id, eventId));
 
     // If this was the latest event, update the job status
-    const lastEvent = tx
+    const [lastEvent] = await tx
       .select()
       .from(stageEvents)
       .where(eq(stageEvents.applicationId, event.applicationId))
       .orderBy(desc(stageEvents.occurredAt))
-      .limit(1)
-      .get();
+      .limit(1);
 
     if (lastEvent && lastEvent.id === eventId) {
-      const job = tx
+      const [job] = await tx
         .select()
         .from(jobs)
         .where(eq(jobs.id, event.applicationId))
-        .get();
+        .limit(1);
       if (!job) throw new Error("Job not found");
 
       const metadata = parseMetadata(lastEvent.metadata);
@@ -246,45 +244,43 @@ export async function updateStageEvent(
         jobClosedAt: job.closedAt ?? null,
       });
 
-      tx.update(jobs)
+      await tx.update(jobs)
         .set({
           status: STAGE_TO_STATUS[lastStage],
           outcome,
           closedAt,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         })
-        .where(eq(jobs.id, event.applicationId))
-        .run();
+        .where(eq(jobs.id, event.applicationId));
     }
   });
 }
 
-export function deleteStageEvent(eventId: string): void {
-  db.transaction((tx) => {
-    const event = tx
+export async function deleteStageEvent(eventId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [event] = await tx
       .select()
       .from(stageEvents)
       .where(eq(stageEvents.id, eventId))
-      .get();
+      .limit(1);
     if (!event) return;
 
-    tx.delete(stageEvents).where(eq(stageEvents.id, eventId)).run();
+    await tx.delete(stageEvents).where(eq(stageEvents.id, eventId));
 
     // Update job status based on the new latest event
-    const lastEvent = tx
+    const [lastEvent] = await tx
       .select()
       .from(stageEvents)
       .where(eq(stageEvents.applicationId, event.applicationId))
       .orderBy(desc(stageEvents.occurredAt))
-      .limit(1)
-      .get();
+      .limit(1);
 
     if (lastEvent) {
-      const job = tx
+      const [job] = await tx
         .select()
         .from(jobs)
         .where(eq(jobs.id, event.applicationId))
-        .get();
+        .limit(1);
       if (!job) throw new Error("Job not found");
 
       const metadata = parseMetadata(lastEvent.metadata);
@@ -298,28 +294,25 @@ export function deleteStageEvent(eventId: string): void {
         jobClosedAt: job.closedAt ?? null,
       });
 
-      tx.update(jobs)
+      await tx.update(jobs)
         .set({
           status: STAGE_TO_STATUS[lastStage],
           outcome,
           closedAt,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         })
-        .where(eq(jobs.id, event.applicationId))
-        .run();
+        .where(eq(jobs.id, event.applicationId));
     } else {
       // If no events left, maybe revert to discovered?
-      // For now just keep it as is or set to discovered if it was applied
-      tx.update(jobs)
+      await tx.update(jobs)
         .set({
           status: "discovered",
           appliedAt: null,
           outcome: null,
           closedAt: null,
-          updatedAt: new Date().toISOString(),
+          updatedAt: new Date(),
         })
-        .where(eq(jobs.id, event.applicationId))
-        .run();
+        .where(eq(jobs.id, event.applicationId));
     }
   });
 }

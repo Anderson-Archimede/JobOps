@@ -8,7 +8,18 @@ export interface AuthRequest extends Request {
   };
 }
 
+const GUEST_USER_ID = "00000000-0000-0000-0000-000000000001";
+
 export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
+  if (process.env.AUTH_ENABLED === "false") {
+    const guestId = process.env.GUEST_USER_ID || GUEST_USER_ID;
+    (req as AuthRequest).user = {
+      userId: guestId,
+      email: "guest@jobops.local",
+    };
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {

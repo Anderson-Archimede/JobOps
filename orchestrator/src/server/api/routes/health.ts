@@ -11,8 +11,10 @@ export const healthRouter = Router();
  */
 healthRouter.get('/', async (req, res) => {
   try {
+    const authEnabled = process.env.AUTH_ENABLED !== "false";
     const healthCheck = {
       status: 'healthy' as 'healthy' | 'degraded' | 'down',
+      authEnabled,
       services: {
         database: 'healthy' as 'healthy' | 'degraded' | 'down',
         redis: 'healthy' as 'healthy' | 'degraded' | 'down',
@@ -88,6 +90,7 @@ healthRouter.get('/', async (req, res) => {
     console.error('Health check error:', error);
     return res.status(503).json({
       status: 'down',
+      authEnabled: process.env.AUTH_ENABLED !== "false",
       services: {
         database: 'down',
         redis: 'down',

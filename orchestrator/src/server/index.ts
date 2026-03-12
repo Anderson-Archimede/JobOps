@@ -13,6 +13,7 @@ import {
   setBackupSettings,
   startBackupScheduler,
 } from "./services/backup/index";
+import { ensureGuestUser } from "./auth/ensureGuestUser";
 import { initializeDemoModeServices } from "./services/demo-mode";
 import { applyStoredEnvOverrides } from "./services/envSettings";
 import { initialize as initializeVisaSponsors } from "./services/visa-sponsors/index";
@@ -115,6 +116,17 @@ async function startServer() {
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
   `);
+
+    if (process.env.AUTH_ENABLED === "false") {
+      try {
+        await ensureGuestUser();
+        console.log("ℹ️ Authentication disabled. Guest user ensured.");
+      } catch (error) {
+        logger.warn("Failed to ensure guest user (auth disabled)", {
+          error: sanitizeUnknown(error),
+        });
+      }
+    }
 
     // Initialize visa sponsors service (downloads data if needed, starts scheduler)
     try {

@@ -1,171 +1,156 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { UserPlus, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
+import { UserPlus, Mail, Lock, User, Loader2, Rocket } from "lucide-react";
 
 export function RegisterPage() {
-  const navigate = useNavigate();
-  const { register } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { register, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
+      return toast.error("Les mots de passe ne correspondent pas");
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    setIsLoading(true);
-
+    setSubmitting(true);
     try {
-      await register(email, password, firstName || undefined, lastName || undefined);
-      navigate("/");
-    } catch (err: any) {
-      setError(err.message || "Registration failed");
+      await register(email, password, firstName, lastName);
+      // register helper shows success toast
+      navigate("/login");
+    } catch (error: any) {
+      toast.error(error.message || "Échec de l'inscription");
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-950 py-12">
-      <div className="w-full max-w-md px-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-xl p-8">
-          <div className="flex items-center justify-center mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
-                <UserPlus className="w-6 h-6 text-white" />
+    <div className="flex min-h-screen items-center justify-center bg-[#0F3460] px-4 py-20 font-sans selection:bg-[#E94560]/30">
+      <div className="w-full max-w-lg space-y-8 rounded-[40px] bg-[#1A1A2E]/80 p-12 shadow-[0_20px_50px_rgba(0,0,0,0.4)] backdrop-blur-2xl ring-1 ring-white/10 relative overflow-hidden">
+        {/* Dynamic background elements */}
+        <div className="absolute -top-32 -right-32 h-64 w-64 rounded-full bg-[#E94560]/15 blur-[100px]" />
+        <div className="absolute -bottom-32 -left-32 h-64 w-64 rounded-full bg-[#16213E]/50 blur-[100px]" />
+
+        <div className="text-center relative">
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[32px] bg-gradient-to-tr from-[#E94560] to-[#FF4D6D] shadow-2xl shadow-[#E94560]/40 transform transition-transform hover:rotate-3 duration-500">
+            <UserPlus className="h-12 w-12 text-white" />
+          </div>
+          <h2 className="mt-10 text-4xl font-extrabold tracking-tight text-white leading-tight">Rejoignez l'aventure</h2>
+          <p className="mt-4 text-lg text-gray-400 font-medium">
+            Créez votre profil de <span className="text-[#E94560] font-bold italic">Super-Candidat</span>
+          </p>
+        </div>
+
+        <form className="mt-12 space-y-7 relative" onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="group relative">
+               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <User className="h-5 w-5 text-gray-500 group-focus-within:text-[#E94560] transition-colors" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">JobOps</h1>
-                <p className="text-sm text-gray-400">Create your account</p>
+              <input
+                type="text"
+                className="block w-full rounded-2xl border-0 bg-[#16213E] py-4 pl-12 pr-4 text-white ring-1 ring-inset ring-white/10 transition-all placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-[#E94560] focus:bg-[#1A1A2E] sm:text-sm shadow-inner"
+                placeholder="Prénom"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+            </div>
+            <div className="group relative">
+               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <User className="h-5 w-5 text-gray-500 group-focus-within:text-[#E94560] transition-colors" />
               </div>
+              <input
+                type="text"
+                className="block w-full rounded-2xl border-0 bg-[#16213E] py-4 pl-12 pr-4 text-white ring-1 ring-inset ring-white/10 transition-all placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-[#E94560] focus:bg-[#1A1A2E] sm:text-sm shadow-inner"
+                placeholder="Nom"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
             </div>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-400">{error}</p>
+          <div className="group relative">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <Mail className="h-5 w-5 text-gray-500 group-focus-within:text-[#E94560] transition-colors" />
             </div>
-          )}
+            <input
+              type="email"
+              required
+              className="block w-full rounded-2xl border-0 bg-[#16213E] py-4 pl-12 pr-4 text-white ring-1 ring-inset ring-white/10 transition-all placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-[#E94560] focus:bg-[#1A1A2E] sm:text-sm shadow-inner"
+              placeholder="votre.email@univers.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-300 mb-2">
-                  First name
-                </label>
-                <input
-                  id="firstName"
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="John"
-                />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="group relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Lock className="h-5 w-5 text-gray-500 group-focus-within:text-[#E94560] transition-colors" />
               </div>
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-300 mb-2">
-                  Last name
-                </label>
-                <input
-                  id="lastName"
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Doe"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email address
-              </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
                 type="password"
+                required
+                className="block w-full rounded-2xl border-0 bg-[#16213E] py-4 pl-12 pr-4 text-white ring-1 ring-inset ring-white/10 transition-all placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-[#E94560] focus:bg-[#1A1A2E] sm:text-sm shadow-inner"
+                placeholder="Mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="••••••••"
               />
-              <p className="mt-1 text-xs text-gray-500">At least 8 characters</p>
             </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
-                Confirm password
-              </label>
+            <div className="group relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Lock className="h-5 w-5 text-gray-500 group-focus-within:text-[#E94560] transition-colors" />
+              </div>
               <input
-                id="confirmPassword"
                 type="password"
+                required
+                className="block w-full rounded-2xl border-0 bg-[#16213E] py-4 pl-12 pr-4 text-white ring-1 ring-inset ring-white/10 transition-all placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-[#E94560] focus:bg-[#1A1A2E] sm:text-sm shadow-inner"
+                placeholder="Confirmation"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="••••••••"
               />
             </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-red-500 hover:bg-red-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating account...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-5 h-5" />
-                  Create account
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-400">
-              Already have an account?{" "}
-              <Link to="/login" className="text-red-500 hover:text-red-400 font-medium">
-                Sign in
-              </Link>
-            </p>
           </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="group relative flex w-full justify-center rounded-[20px] bg-gradient-to-r from-[#E94560] to-[#C02425] px-6 py-5 text-lg font-bold text-white shadow-2xl shadow-[#E94560]/30 transition-all hover:scale-[1.03] active:scale-[0.98] disabled:opacity-50"
+          >
+            {submitting ? (
+              <Loader2 className="h-7 w-7 animate-spin" />
+            ) : (
+              <span className="flex items-center gap-3">
+                Lancer ma carrière <Rocket className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              </span>
+            )}
+          </button>
+        </form>
+
+        <div className="pt-8 relative text-center">
+          <div className="absolute inset-x-0 top-0 flex items-center justify-center">
+            <div className="w-full border-t border-white/5" />
+          </div>
+          <p className="mt-8 text-sm font-medium text-gray-400">
+            Déjà membre de l'équipe ?{" "}
+            <Link to="/login" className="font-bold text-[#E94560] hover:text-[#FF4D6D] transition-colors underline-offset-8 hover:underline">
+              Se connecter
+            </Link>
+          </p>
         </div>
       </div>
     </div>

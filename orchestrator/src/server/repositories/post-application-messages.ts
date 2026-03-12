@@ -119,8 +119,8 @@ function mapRowToPostApplicationMessage(
     decidedBy: row.decidedBy,
     errorCode: row.errorCode,
     errorMessage: row.errorMessage,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -208,7 +208,7 @@ export async function upsertPostApplicationMessage(
         decidedBy: input.decidedBy ?? null,
         errorCode: input.errorCode ?? null,
         errorMessage: input.errorMessage ?? null,
-        updatedAt: nowIso,
+        updatedAt: new Date(),
       })
       .where(eq(postApplicationMessages.id, existing.id));
 
@@ -259,8 +259,8 @@ export async function upsertPostApplicationMessage(
     decidedBy: input.decidedBy ?? null,
     errorCode: input.errorCode ?? null,
     errorMessage: input.errorMessage ?? null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
   const created = await getPostApplicationMessageByExternalId(
@@ -284,7 +284,7 @@ export async function upsertPostApplicationMessage(
 export async function updatePostApplicationMessageSuggestion(
   input: UpdatePostApplicationMessageSuggestionInput,
 ): Promise<PostApplicationMessage | null> {
-  const nowIso = new Date().toISOString();
+  const now = new Date();
   await db
     .update(postApplicationMessages)
     .set({
@@ -293,7 +293,7 @@ export async function updatePostApplicationMessageSuggestion(
         ? { matchConfidence: input.matchConfidence }
         : {}),
       processingStatus: input.processingStatus,
-      updatedAt: nowIso,
+      updatedAt: now,
     })
     .where(eq(postApplicationMessages.id, input.id));
 
@@ -352,7 +352,7 @@ export async function updatePostApplicationMessageDecision(
   input: UpdatePostApplicationMessageDecisionInput,
 ): Promise<PostApplicationMessage | null> {
   const decidedAt = input.decidedAt ?? Date.now();
-  const nowIso = new Date(decidedAt).toISOString();
+  const now = new Date();
 
   await db
     .update(postApplicationMessages)
@@ -361,7 +361,7 @@ export async function updatePostApplicationMessageDecision(
       matchedJobId: input.matchedJobId,
       decidedAt,
       decidedBy: input.decidedBy ?? null,
-      updatedAt: nowIso,
+      updatedAt: now,
     })
     .where(eq(postApplicationMessages.id, input.id));
 

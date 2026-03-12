@@ -70,6 +70,9 @@ export interface IAgent {
   // Monitoring
   getMetrics(): AgentMetrics;
   getLogs(limit?: number, offset?: number, level?: LogLevel): Promise<AgentLog[]>;
+  getCurrentRun?(): AgentRun | undefined;
+  getLastRun?(): AgentRun | undefined;
+  getRuns?(limit?: number): AgentRun[];
   
   // Lifecycle
   enable(): Promise<void>;

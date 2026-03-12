@@ -30,12 +30,28 @@ const redisConnectionOptions: RedisOptions = {
   },
 };
 
+function getRedisOptions(url: string): RedisOptions {
+  try {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: parseInt(parsed.port || "6379", 10),
+      username: parsed.username || undefined,
+      password: parsed.password || undefined,
+      ...redisConnectionOptions,
+    };
+  } catch {
+    // Fallback if URL is invalid (e.g. localhost:6379 without protocol)
+    return redisConnectionOptions;
+  }
+}
+
 // Export redis connection for workers (BullMQ will create its own instance)
-export const redisConnection = REDIS_URL;
+export const redisConnection: RedisOptions = getRedisOptions(REDIS_URL);
 
 // Default queue options
 const defaultQueueOptions: QueueOptions = {
-  connection: REDIS_URL,
+  connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

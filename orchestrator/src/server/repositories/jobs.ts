@@ -324,17 +324,29 @@ export async function updateJob(
 ): Promise<Job | null> {
   const now = new Date();
 
-  await db
-    .update(jobs)
-    .set({
-      ...input,
-      updatedAt: now,
-      ...(input.status === "processing" ? { processedAt: now } : {}),
-      ...(input.status === "applied" && !input.appliedAt
-        ? { appliedAt: now }
-        : {}),
-    })
-    .where(eq(jobs.id, id));
+  const values: any = {
+    ...input,
+    updatedAt: now,
+  };
+
+  if (input.appliedAt) {
+    values.appliedAt = new Date(input.appliedAt);
+  }
+  if (input.deadline) {
+    values.deadline = new Date(input.deadline);
+  }
+  if (input.closedAt) {
+    values.closedAt = new Date(input.closedAt);
+  }
+
+  if (input.status === "processing") {
+    values.processedAt = now;
+  }
+  if (input.status === "applied" && !input.appliedAt) {
+    values.appliedAt = now;
+  }
+
+  await db.update(jobs).set(values).where(eq(jobs.id, id));
 
   return getJobById(id);
 }

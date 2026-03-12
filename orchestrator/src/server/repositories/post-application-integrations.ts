@@ -47,8 +47,8 @@ function mapRowToIntegration(
     lastConnectedAt: row.lastConnectedAt,
     lastSyncedAt: row.lastSyncedAt,
     lastError: row.lastError,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -88,7 +88,7 @@ export async function upsertConnectedPostApplicationIntegration(
         credentials: input.credentials,
         lastConnectedAt: nowEpoch,
         lastError: null,
-        updatedAt: nowIso,
+        updatedAt: new Date(),
       })
       .where(eq(postApplicationIntegrations.id, existing.id));
 
@@ -114,8 +114,8 @@ export async function upsertConnectedPostApplicationIntegration(
     credentials: input.credentials,
     lastConnectedAt: nowEpoch,
     lastError: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
   const created = await getPostApplicationIntegration(
@@ -137,14 +137,14 @@ export async function disconnectPostApplicationIntegration(
   const existing = await getPostApplicationIntegration(provider, accountKey);
   if (!existing) return null;
 
-  const nowIso = new Date().toISOString();
+  const now = new Date();
   await db
     .update(postApplicationIntegrations)
     .set({
       status: "disconnected",
       credentials: null,
       lastError: null,
-      updatedAt: nowIso,
+      updatedAt: now,
     })
     .where(eq(postApplicationIntegrations.id, existing.id));
 
@@ -160,7 +160,7 @@ export async function updatePostApplicationIntegrationSyncState(
   );
   if (!existing) return null;
 
-  const nowIso = new Date().toISOString();
+  const now = new Date();
   await db
     .update(postApplicationIntegrations)
     .set({
@@ -172,7 +172,7 @@ export async function updatePostApplicationIntegrationSyncState(
       ...(input.credentials !== undefined
         ? { credentials: input.credentials }
         : {}),
-      updatedAt: nowIso,
+      updatedAt: now,
     })
     .where(eq(postApplicationIntegrations.id, existing.id));
 

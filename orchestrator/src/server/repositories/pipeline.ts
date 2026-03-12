@@ -18,7 +18,7 @@ export async function createPipelineRun(): Promise<PipelineRun> {
 
   await db.insert(pipelineRuns).values({
     id,
-    startedAt: now,
+    startedAt: new Date(),
     status: "running",
   });
 
@@ -46,7 +46,11 @@ export async function updatePipelineRun(
     errorMessage: string;
   }>,
 ): Promise<void> {
-  await db.update(pipelineRuns).set(update).where(eq(pipelineRuns.id, id));
+  const values: any = { ...update };
+  if (update.completedAt) {
+    values.completedAt = new Date(update.completedAt);
+  }
+  await db.update(pipelineRuns).set(values).where(eq(pipelineRuns.id, id));
 }
 
 /**
@@ -63,8 +67,8 @@ export async function getLatestPipelineRun(): Promise<PipelineRun | null> {
 
   return {
     id: row.id,
-    startedAt: row.startedAt,
-    completedAt: row.completedAt,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
     status: row.status as PipelineRun["status"],
     jobsDiscovered: row.jobsDiscovered,
     jobsProcessed: row.jobsProcessed,
@@ -86,8 +90,8 @@ export async function getRecentPipelineRuns(
 
   return rows.map((row) => ({
     id: row.id,
-    startedAt: row.startedAt,
-    completedAt: row.completedAt,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: row.completedAt ? row.completedAt.toISOString() : null,
     status: row.status as PipelineRun["status"],
     jobsDiscovered: row.jobsDiscovered,
     jobsProcessed: row.jobsProcessed,

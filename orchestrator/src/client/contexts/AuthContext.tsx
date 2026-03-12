@@ -1,12 +1,26 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import type { User, AuthResponse } from "@shared/types/auth";
 import { setAccessToken as setInterceptorToken } from "../utils/axiosInterceptor";
+import { toast } from "sonner";
+
+const GUEST_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+const guestUser: User = {
+  id: GUEST_USER_ID,
+  email: "guest@jobops.local",
+  firstName: "Guest",
+  lastName: "User",
+  profileData: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 interface AuthContextType {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  authEnabled: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -15,76 +29,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authEnabled, setAuthEnabled] = useState(true);
 
-  const updateAccessToken = (token: string | null) => {
+  const updateAccessToken = useCallback((token: string | null) => {
     setAccessToken(token);
     setInterceptorToken(token);
-  };
-
-  const login = async (email: string, password: string) => {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Login failed");
+    if (token) {
+      localStorage.setItem("accessToken", token);
+    } else {
+      localStorage.removeItem("accessToken");
     }
+  }, []);
 
-    const data: AuthResponse = await response.json();
-    updateAccessToken(data.accessToken);
-    setUser(data.user);
-  };
-
-  const register = async (
-    email: string,
-    password: string,
-    firstName?: string,
-    lastName?: string
-  ) => {
-    const response = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, firstName, lastName }),
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Registration failed");
-    }
-
-    const data: AuthResponse = await response.json();
-    updateAccessToken(data.accessToken);
-    setUser(data.user);
-  };
-
-  const logout = async () => {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      updateAccessToken(null);
-      setUser(null);
-    }
-  };
-
-  const refreshToken = async (): Promise<boolean> => {
+  const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
       const response = await fetch("/api/auth/refresh", {
         method: "POST",
@@ -97,45 +58,114 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       }
 
-      const data = await response.json();
-      updateAccessToken(data.accessToken);
+      const resData = await response.json();
+      if (resData.ok) {
+        updateAccessToken(resData.data.accessToken);
+        
+        // Fetch user data if we have a token
+        const userResponse = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${resData.data.accessToken}`,
+          },
+        });
 
-      const userResponse = await fetch("/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${data.accessToken}`,
-        },
-      });
-
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        setUser(userData);
-        return true;
+        if (userResponse.ok) {
+          const userResData = await userResponse.json();
+          if (userResData.ok) {
+            setUser(userResData.data);
+            return true;
+          }
+        }
       }
-
       return false;
     } catch (error) {
-      console.error("Token refresh error:", error);
       updateAccessToken(null);
       setUser(null);
       return false;
+    }
+  }, [updateAccessToken]);
+
+  const login = async (email: string, password: string) => {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+      credentials: "include",
+    });
+
+    const resData = await response.json();
+    if (!response.ok || !resData.ok) {
+      throw new Error(resData.error?.message || "Login failed");
+    }
+
+    updateAccessToken(resData.data.accessToken);
+    setUser(resData.data.user);
+    toast.success("Welcome back!");
+  };
+
+  const register = async (email: string, password: string, firstName?: string, lastName?: string) => {
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, firstName, lastName }),
+      credentials: "include",
+    });
+
+    const resData = await response.json();
+    if (!response.ok || !resData.ok) {
+      throw new Error(resData.error?.message || "Registration failed");
+    }
+
+    // After register, we might want to login or redirected to login
+    toast.success("Registration successful! Please login.");
+  };
+
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      updateAccessToken(null);
+      setUser(null);
+      window.location.href = "/login";
     }
   };
 
   useEffect(() => {
     const initAuth = async () => {
       setIsLoading(true);
+      try {
+        const healthRes = await fetch("/api/health");
+        const healthData = await healthRes.json().catch(() => ({}));
+        if (healthData.authEnabled === false) {
+          setAuthEnabled(false);
+          setUser(guestUser);
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        // If health fails, proceed with normal auth flow
+      }
+      setAuthEnabled(true);
+      const savedToken = localStorage.getItem("accessToken");
+      if (savedToken) {
+        updateAccessToken(savedToken);
+      }
       await refreshToken();
       setIsLoading(false);
     };
 
     initAuth();
-  }, []);
+  }, [refreshToken, updateAccessToken]);
 
   const value: AuthContextType = {
     user,
     accessToken,
     isAuthenticated: !!user,
     isLoading,
+    authEnabled,
     login,
     register,
     logout,

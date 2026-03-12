@@ -49,8 +49,8 @@ function mapRowToSyncRun(
     messagesErrored: row.messagesErrored,
     errorCode: row.errorCode,
     errorMessage: row.errorMessage,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -78,8 +78,8 @@ export async function startPostApplicationSyncRun(
     messagesErrored: 0,
     errorCode: null,
     errorMessage: null,
-    createdAt: nowIso,
-    updatedAt: nowIso,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
   const run = await getPostApplicationSyncRunById(id);
@@ -109,7 +109,7 @@ export async function completePostApplicationSyncRun(
       messagesErrored: input.messagesErrored,
       errorCode: input.errorCode ?? null,
       errorMessage: input.errorMessage ?? null,
-      updatedAt: nowIso,
+      updatedAt: new Date(),
     })
     .where(eq(postApplicationSyncRuns.id, input.id));
 
