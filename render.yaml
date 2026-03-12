@@ -1,0 +1,34 @@
+services:
+  # Backend orchestrator (Node.js + Express + BullMQ)
+  - type: web
+    name: jobops-orchestrator
+    runtime: docker
+    plan: free
+
+    # Use the existing Dockerfile at the repo root
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+
+    envVars:
+      # Neon Postgres connection string (set in Render dashboard)
+      - key: DATABASE_URL
+        sync: false
+
+      # Redis (for BullMQ queues) – your public RedisLabs endpoint
+      - key: REDIS_URL
+        value: "redis://redis-15891.crce198.eu-central-1-3.ec2.cloud.redislabs.com:15891"
+
+      # Disable JWT auth and run in guest mode (already supported par le code)
+      - key: AUTH_ENABLED
+        value: "false"
+      - key: GUEST_USER_ID
+        value: "00000000-0000-0000-0000-000000000001"
+
+      # Public base URL of this Render service (used pour tracer links / front)
+      - key: JOBOPS_PUBLIC_BASE_URL
+        value: "https://jobops.onrender.com"
+
+      # Optional: Node environment
+      - key: NODE_ENV
+        value: "production"
+
