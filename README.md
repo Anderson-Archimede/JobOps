@@ -168,8 +168,11 @@ npm --workspace orchestrator run dev
 Then open:
 - **Dashboard:** http://localhost:3001 (or http://localhost:3001/dashboard)
 - **Login/Register:** http://localhost:3001/login (first-time users)
-- **Agents Management:** http://localhost:3001/agents (NEW)
-- **CV Manager:** http://localhost:3001/cv-manager (NEW)
+- **Agents Management:** http://localhost:3001/agents
+- **CV Manager:** http://localhost:3001/cv-manager
+- **Skills DNA:** http://localhost:3001/skills-dna — Radar de compétences & Gap Analysis
+- **Centre des offres (Résultats):** http://localhost:3001/jobs/discovered — Offres scrappées, matching, candidature
+- **Interview Coach:** http://localhost:3001/interview-coach — Après « Préparer entretien » (sessionId en query)
 - **Queue Monitoring:** http://localhost:3001/admin/queues (Bull Board)
 - **Global Search:** Press Cmd+K anywhere in the app
 
@@ -182,23 +185,97 @@ Then open:
 * **Universal Scraping**: Supports **LinkedIn, Indeed, Glassdoor, Adzuna, Hiring Café, Gradcracker, UK Visa Jobs**.
 * **AI Scoring**: Ranks jobs by fit against *your* profile using your preferred LLM (OpenRouter/OpenAI/Gemini).
 * **Auto-Tailoring**: Generates custom resumes (PDFs) for every application using RxResume v4.
-* **CV Manager**: 🆕 Professional CV library with versioning and role-based organization
+* **CV Manager**: Professional CV library with versioning, role-based organization, and Skills DNA extraction.
+* **Dashboard Intelligent (C-CORE-01)**: KPIs animés, Market Pulse (SSE), Momentum Score, Insight du jour, Quick Actions (Scraping, Nouvelles offres, Préparer entretien).
+* **Scraping one-click**: Lancement depuis le Dashboard, progression temps réel par plateforme, offres injectées automatiquement dans le Centre des offres.
+* **Préparation entretien**: Génération de questions (Flash / Complet / Technique) par LLM, page Interview Coach avec conseils et export.
+* **Skills DNA (C-HUNT-01)**: Radar de compétences, Gap Analysis vs offres, roadmap d’apprentissage, historique.
+* **Centre des offres**: Liste des offres scrappées, matching, actions Postuler / J’ai postulé / En cours / Passer, détail et scoring.
 * **Email Tracking**: Connect Gmail to auto-detect interviews, offers, and rejections.
 * **Asynchronous Processing**: BullMQ-powered job queues with automatic retry and monitoring.
 * **PostgreSQL Database**: Scalable, production-ready database with Drizzle ORM.
-* **JWT Authentication**: 🆕 Secure multi-user authentication with RS256 tokens and refresh mechanisms
+* **JWT Authentication**: Secure multi-user authentication with RS256 tokens and refresh mechanisms.
 * **Real-time Monitoring**: Bull Board dashboard for queue visualization and job management.
-* **Modern UI/UX**: 🆕 Professional sidebar, feature-rich navbar, and premium high-contrast design
-* **Dashboard Analytics**: 🆕 Real-time KPIs, high-visibility interactive charts (Donut, Area), and activity feed
-* **Global Search**: 🆕 Cmd+K quick search across jobs, applications, and agents
-* **Agents System**: 🆕 CRUD interface for AI agent orchestration with live monitoring
+* **Modern UI/UX**: Professional sidebar, feature-rich navbar, premium high-contrast design.
+* **Dashboard Analytics**: Real-time KPIs, interactive charts (Donut, Area), activity feed.
+* **Global Search**: Cmd+K quick search across jobs, applications, and agents.
+* **Agents System**: CRUD interface for AI agent orchestration with live monitoring.
 * **Self-Hosted**: Your data stays with you. No SaaS fees.
-* **Skip Onboarding**: 🆕 Start using the dashboard immediately, configure integrations later.
-* **E2E Tested**: 🆕 Playwright end-to-end tests ensure stability and reliability.
+* **Skip Onboarding**: Start using the dashboard immediately, configure integrations later.
+* **E2E Tested**: Playwright end-to-end tests ensure stability and reliability.
+
+## Recent Updates (2026-03-13)
+
+### ✅ Nouvelles fonctionnalités (Mars 2026)
+
+#### 🎯 C-CORE-01 — Dashboard Intelligent Seeker
+
+- **KPIs animés** : 4 cartes (Candidatures actives, Score PSO moyen, Taux de réponse, Entretiens planifiés) avec count-up et delta vs semaine précédente
+- **Market Pulse** : Tension des compétences sur le marché (tensionScore, salaire P50, tendance) avec **SSE live** (`GET /api/seeker/market-pulse/live`) — émission conditionnelle si nouvelles offres
+- **Momentum Score** : Jauge 0–100 (Excellent / À améliorer) selon candidatures, profil, agents, score PSO, inbox
+- **Activity Timeline** : Derniers événements avec icônes (max 10), lien « Voir tout »
+- **Insight du Jour** : Carte avec texte IA généré (Sparkles)
+- **Quick Actions bar** (sous le header) :
+  - **⚡ Lancer un scraping** → ouvre le modal de scraping
+  - **📋 Voir nouvelles offres** → navigation vers offres des 48h (badge rouge si count > 0)
+  - **⏱ Préparer entretien** → ouvre le modal de préparation aux entretiens
+
+#### ⚡ Lancer un scraping (Quick Action 1)
+
+- **Modal ScrapingModal** : Configuration (plateformes LinkedIn, Indeed, HelloWork, etc.), mots-clés, localisation, nombre max de résultats
+- **Backend** : `POST /api/seeker/scraping/launch`, `GET /api/seeker/scraping/sessions`, `GET /api/seeker/scraping/sessions/:id/progress` (SSE)
+- **Progression temps réel** : Barre globale + progression par plateforme, compteur d’offres trouvées
+- **Insertion en base** : Les offres générées sont enregistrées dans la table `jobs` (status `discovered`) et visibles sur la page Résultats
+- **Navigation** : Après succès → redirection vers `/jobs/discovered`
+
+#### 📋 Voir nouvelles offres (Quick Action 2)
+
+- **Filtre « nouvelles »** : Offres des 48 dernières heures, option « non vues » (table `job_views`)
+- **API** : `GET /api/seeker/jobs?filter=new`, `POST /api/seeker/jobs/:id/view`, `GET /api/seeker/jobs/count-new`
+- **Badge** : Compteur dynamique sur le bouton (rafraîchi toutes les 5 min)
+- **Navigation** : `/jobs/all?filter=new&sort=createdAt`
+
+#### ⏱ Préparer un entretien (Quick Action 3)
+
+- **Modal InterviewPrepModal** : Choix d’une candidature avec entretien planifié ou saisie libre (titre, entreprise, description)
+- **Modes** : Flash (8 questions — 10 min), Complet (15 questions — 30 min), Technique (12 questions)
+- **Backend** : `GET /api/seeker/interview/applications-with-interview`, `POST /api/seeker/interview/prepare` (génération LLM avec fallback multi-modèles)
+- **Page Interview Coach** : `/interview-coach?sessionId=...` — affichage des questions avec type (Comportemental / Technique / Motivationnel / Situationnel), difficulté (★), conseils, mots-clés attendus, méthode STAR, export TXT, suivi « traité »
+
+#### 🧬 C-HUNT-01 — Skills DNA
+
+- **Extraction automatique** : Compétences depuis tous les CVs uploadés + historique candidatures (LLM)
+- **Radar chart** : 6 axes (Data Engineering, BI/Visualization, ML/AI, Cloud, Soft Skills, Domain) avec niveaux Notions → Expert
+- **Gap Analysis** : Comparaison avec les 50 dernières offres → top compétences manquantes + recommandations (Coursera, certs, projets)
+- **API** : `GET /api/seeker/skills-dna`, `POST /api/seeker/skills-dna/refresh`, `GET /api/seeker/skills-dna/history`
+- **Page Skills DNA** : Radar futuriste, liste par catégorie, évolution dans le temps
+
+#### 📄 Centre des offres (Page Résultats) — Refonte
+
+- **Données scraping** : Les offres du scraping apparaissent automatiquement sur le dashboard des résultats
+- **Header** : « Centre des Offres », « Recherche & Candidatures », bouton « Lancer pipeline »
+- **Résumé** : 4 KPIs (Découvertes, Prêtes, Postulées, En cours)
+- **Liste d’offres** : Cartes avec avatar employeur, score (Excellent/Bon/Moyen/Faible), salaire, « temps depuis découverte »
+- **Détail + Quick Actions** : Postuler, J’ai postulé, En cours, Passer, « Voir l’offre »
+- **DiscoveredPanel / DecideMode** : Score détaillé, métadonnées (lieu, salaire, type), « Postuler maintenant », « Adapter mon CV », sections repliables (compétences, description)
+- **Sélection multiple** : Barre d’actions flottante (Prêt à postuler, Passer, Recalculer le score)
+
+#### 📄 CV Manager — Renforts
+
+- **Extraction sécurisée** : Intégration avec Skills DNA pour l’extraction des compétences depuis le CV
+- **Aperçu / Voir** : Boutons « Aperçu stylisé », « Cliquer pour ouvrir », « Aperçu PDF », « Voir » fonctionnels pour consulter le contenu
+
+#### ☁️ Déploiement
+
+- **Vercel** : `installCommand: "cd .. && npm ci"` pour monorepo ; routes `/api` et `/pdfs` proxy vers Render. Pour **désactiver le login** sur le front (mode invité) : ajouter la variable d’environnement `VITE_AUTH_ENABLED=false` dans les paramètres du projet Vercel (Build & Deployment → Environment Variables), puis redéployer.
+- **Render** : Variables `LLM_API_KEY` et `OPENROUTER_API_KEY` (optionnelles) dans `render.yaml`
+- **Script** : `scripts/deploy.ps1` (Render, Vercel ou les deux) ; deploy hook Render pour déclencher un déploiement
+
+---
 
 ## Recent Updates (2026-03-11)
 
-### ✅ Latest Improvements (March 2026)
+### ✅ Améliorations (Mars 2026 — base)
 
 #### 📄 CV Manager - Professional Resume Library (NEW - March 11, 2026)
 
@@ -355,6 +432,20 @@ Then open:
   - `POST /api/cvs/bulk-export` - Export selected CVs as ZIP
   - `POST /api/cvs/:id/restore/:versionId` - Restore previous version
   - `DELETE /api/cvs/:id` - Delete CV (soft delete)
+
+- **Seeker Dashboard & Quick Actions** (mars 2026):
+  - `GET /api/seeker/dashboard` - KPIs, Market Pulse, Momentum Score, Activity, Insight du jour
+  - `GET /api/seeker/market-pulse/live` - SSE Market Pulse (émission si nouvelles offres)
+  - `POST /api/seeker/scraping/launch` - Lancer un scraping (plateformes, keywords, etc.)
+  - `GET /api/seeker/scraping/sessions` - Dernières sessions
+  - `GET /api/seeker/scraping/sessions/:id/progress` - SSE progression temps réel
+  - `GET /api/seeker/jobs` - Liste offres (filter=new, sort, pagination)
+  - `POST /api/seeker/jobs/:id/view` - Marquer une offre comme vue
+  - `GET /api/seeker/jobs/count-new` - Badge « nouvelles offres »
+  - `GET /api/seeker/interview/applications-with-interview` - Candidatures avec entretien
+  - `POST /api/seeker/interview/prepare` - Générer questions d’entretien (LLM)
+  - `GET /api/seeker/interview/sessions`, `GET /api/seeker/interview/sessions/:id` - Sessions de préparation
+  - `GET /api/seeker/skills-dna`, `POST /api/seeker/skills-dna/refresh`, `GET /api/seeker/skills-dna/history` - Skills DNA
 
 See detailed documentation in:
 - [orchestrator/SIDEBAR_IMPLEMENTATION.md](./orchestrator/SIDEBAR_IMPLEMENTATION.md) - Sidebar architecture

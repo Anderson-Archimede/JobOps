@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Menu,
   Search,
@@ -30,7 +30,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Badge } from '@/components/ui/badge';
+
 import { Button } from '@/components/ui/button';
 import { useSearch } from '../hooks/useSearch';
 import { useSystemStatus } from '../hooks/useSystemStatus';
@@ -43,8 +43,6 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  
   // Hooks
   const { query, setQuery, results, isLoading, categories, clearSearch } = useSearch();
   const { status, healthCheck } = useSystemStatus();
@@ -53,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   
   // State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -113,42 +111,28 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
     down: 'bg-red-500',
   }[status];
 
-  // Theme toggle
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // TODO: Implement actual theme switching with context
-  };
-
-  // Get app version
-  const appVersion = '0.1.30'; // Could be imported from package.json
-
   return (
-    <nav className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-border/50 bg-background/80 px-5 backdrop-blur-xl">
       {/* LEFT ZONE */}
       <div className="flex items-center gap-3">
-        {/* Hamburger button */}
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleSidebar}
-          className="lg:hidden"
+          className="lg:hidden h-8 w-8"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4.5 w-4.5" />
         </Button>
 
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-[#E94560]">JobOps</h1>
-          <Badge variant="secondary" className="text-xs">
-            v{appVersion}
-          </Badge>
-        </div>
+        <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-[#E94560] to-[#FF6B6B] bg-clip-text text-transparent">
+          JobOps
+        </h1>
       </div>
 
       {/* CENTER ZONE - Global Search */}
-      <div className="relative flex-1 max-w-xl mx-4 hidden md:block" ref={searchDropdownRef}>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="relative flex-1 max-w-lg mx-6 hidden md:block" ref={searchDropdownRef}>
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60 group-focus-within:text-muted-foreground transition-colors" />
           <input
             ref={searchInputRef}
             type="text"
@@ -156,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setIsSearchOpen(true)}
-            className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="h-9 w-full rounded-lg border border-border/50 bg-muted/40 pl-9 pr-10 text-sm placeholder:text-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:bg-muted/60 transition-all"
           />
           {query && (
             <button
@@ -271,142 +255,137 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
       </div>
 
       {/* RIGHT ZONE */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         {/* Notifications */}
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative"
+                className="relative h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                 onClick={() => navigate('/notifications')}
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-[18px] w-[18px]" />
                 {notificationCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#E94560] text-[10px] font-bold text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#E94560] text-[9px] font-bold text-white ring-2 ring-background">
                     {notificationCount > 9 ? '9+' : notificationCount}
                   </span>
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Notifications {notificationCount > 0 && `(${notificationCount})`}</p>
+            <TooltipContent side="bottom" className="text-xs">
+              Notifications
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
+        <div className="w-px h-5 bg-border/40 mx-1.5" />
+
         {/* Quick Actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="default" size="sm" className="gap-2 bg-[#E94560] hover:bg-[#E94560]/90">
-              <Zap className="h-4 w-4" />
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg bg-gradient-to-r from-[#E94560] to-[#D63B54] hover:from-[#D63B54] hover:to-[#C43048] text-white text-xs font-medium px-3 shadow-sm shadow-[#E94560]/20 transition-all"
+            >
+              <Zap className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Nouveau</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Actions rapides</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Actions rapides</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/orchestrator')}>
-              <Play className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={() => navigate('/orchestrator')} className="text-sm">
+              <Play className="mr-2 h-3.5 w-3.5" />
               Lancer scraping
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/applications/in-progress')}>
-              <Briefcase className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={() => navigate('/applications/in-progress')} className="text-sm">
+              <Briefcase className="mr-2 h-3.5 w-3.5" />
               Nouvelle application
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/cv-manager')}>
-              <FileUp className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={() => navigate('/cv-manager')} className="text-sm">
+              <FileUp className="mr-2 h-3.5 w-3.5" />
               Importer CV
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <div className="w-px h-5 bg-border/40 mx-1.5" />
+
         {/* System Status */}
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="relative flex h-8 w-8 items-center justify-center rounded-full hover:bg-accent">
-                <span className={`h-2 w-2 rounded-full ${statusColor} animate-pulse`} />
+              <button className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted/60 transition-colors">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${statusColor} opacity-50`} />
+                  <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${statusColor}`} />
+                </span>
               </button>
             </TooltipTrigger>
-            <TooltipContent className="w-64">
+            <TooltipContent side="bottom" className="w-56">
               <div className="space-y-2">
-                <div className="font-semibold">System Status: {status.toUpperCase()}</div>
+                <div className="text-xs font-semibold">Statut : {status === 'healthy' ? 'Opérationnel' : status === 'degraded' ? 'Dégradé' : 'Hors ligne'}</div>
                 {healthCheck && (
-                  <>
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span>Database:</span>
-                        <span className="font-medium">{healthCheck.services.database}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Redis:</span>
-                        <span className="font-medium">{healthCheck.services.redis}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Queues:</span>
-                        <span className="font-medium">{healthCheck.services.queues}</span>
-                      </div>
+                  <div className="space-y-1 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Base de données</span>
+                      <span className="font-medium">{healthCheck.services.database}</span>
                     </div>
-                    {healthCheck.details && (
-                      <div className="space-y-1 border-t pt-2 text-xs">
-                        <div className="flex justify-between">
-                          <span>Active Jobs:</span>
-                          <span className="font-medium">{healthCheck.details.activeJobs || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Queued:</span>
-                          <span className="font-medium">{healthCheck.details.queuedJobs || 0}</span>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Redis</span>
+                      <span className="font-medium">{healthCheck.services.redis}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Files d'attente</span>
+                      <span className="font-medium">{healthCheck.services.queues}</span>
+                    </div>
+                  </div>
                 )}
               </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
-        {/* Theme Toggle - Hidden for now as app is dark-only */}
-        {/* <Button variant="ghost" size="icon" onClick={toggleTheme}>
-          {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-        </Button> */}
+        <div className="w-px h-5 bg-border/40 mx-1.5" />
 
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <User className="h-5 w-5" />
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted/60 transition-colors">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#E94560]/20 to-[#E94560]/5 border border-[#E94560]/20">
+                <User className="h-3.5 w-3.5 text-[#E94560]" />
+              </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel className="py-2">
               {isAuthenticated ? (
-                <div className="flex flex-col">
-                  <span>{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : (user?.email || 'Invité')}</span>
-                  <span className="text-[10px] text-muted-foreground font-normal tabular-nums">{user?.email}</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm">{user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : (user?.email || 'Invité')}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">{user?.email}</span>
                 </div>
               ) : (
-                'Mon compte'
+                <span className="text-sm">Mon compte</span>
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/profile')}>
-              <UserCircle className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={() => navigate('/profile')} className="text-sm">
+              <UserCircle className="mr-2 h-3.5 w-3.5" />
               Profil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/settings')}>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
+            <DropdownMenuItem onClick={() => navigate('/settings')} className="text-sm">
+              <Settings className="mr-2 h-3.5 w-3.5" />
+              Paramètres
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => alert('Keyboard shortcuts')}>
-              <Keyboard className="mr-2 h-4 w-4" />
-              Raccourcis clavier
+            <DropdownMenuItem onClick={() => alert('Keyboard shortcuts')} className="text-sm">
+              <Keyboard className="mr-2 h-3.5 w-3.5" />
+              Raccourcis
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => logout()}>
-              <LogOut className="mr-2 h-4 w-4" />
+            <DropdownMenuItem onClick={() => logout()} className="text-sm text-red-400 focus:text-red-400">
+              <LogOut className="mr-2 h-3.5 w-3.5" />
               Déconnexion
             </DropdownMenuItem>
           </DropdownMenuContent>

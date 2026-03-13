@@ -136,8 +136,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       setIsLoading(true);
+
+      // Build-time override: when VITE_AUTH_ENABLED=false, skip login
+      if (import.meta.env.VITE_AUTH_ENABLED === "false") {
+        setAuthEnabled(false);
+        setUser(guestUser);
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const healthRes = await fetch("/api/health");
+        const healthRes = await fetch("/api/health", { signal: AbortSignal.timeout(5000) });
         const healthData = await healthRes.json().catch(() => ({}));
         if (healthData.authEnabled === false) {
           setAuthEnabled(false);
@@ -145,10 +154,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsLoading(false);
           return;
         }
+        if (healthData.authEnabled === true) {
+          setAuthEnabled(true);
+        } else {
+          setAuthEnabled(false);
+          setUser(guestUser);
+          setIsLoading(false);
+          return;
+        }
       } catch {
-        // If health fails, proceed with normal auth flow
+        setAuthEnabled(false);
+        setUser(guestUser);
+        setIsLoading(false);
+        return;
       }
-      setAuthEnabled(true);
       const savedToken = localStorage.getItem("accessToken");
       if (savedToken) {
         updateAccessToken(savedToken);
