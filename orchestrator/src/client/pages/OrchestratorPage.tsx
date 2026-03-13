@@ -179,6 +179,15 @@ export const OrchestratorPage: React.FC = () => {
     }
   }, [isLoading, sourceFilter, setSourceFilter, sourcesWithJobs]);
 
+  // Record job view for seeker "new offers" badge when user opens a job
+  useEffect(() => {
+    if (!selectedJobId) return;
+    fetch(`/api/seeker/jobs/${selectedJobId}/view`, {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => {});
+  }, [selectedJobId]);
+
   const handleSelectJob = (id: string) => {
     handleSelectJobId(id);
     if (!isDesktop) {

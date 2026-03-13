@@ -35,6 +35,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { TracerLinksPage } from "./pages/TracerLinksPage";
 import { TrackingInboxPage } from "./pages/TrackingInboxPage";
 import { VisaSponsorsPage } from "./pages/VisaSponsorsPage";
+import { SkillsDNAPage } from "./pages/SkillsDNAPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
@@ -165,6 +166,7 @@ function AppContent() {
 
                   {/* Protected Routes */}
                   <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                  <Route path="/skills-dna" element={<ProtectedRoute><SkillsDNAPage /></ProtectedRoute>} />
                   <Route path="/overview" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
                   <Route path="/jobs/:tab" element={<ProtectedRoute><OrchestratorPage /></ProtectedRoute>} />
                   <Route path="/jobs/:tab/:jobId" element={<ProtectedRoute><OrchestratorPage /></ProtectedRoute>} />

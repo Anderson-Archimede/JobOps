@@ -7,17 +7,26 @@ import {
   Trash2,
   Download,
   History,
-  Filter,
   CheckSquare,
   Square,
   AlertCircle,
   Plus,
   Search,
   X,
+  Eye,
+  Sparkles,
+  Target,
+  ChevronRight,
+  Clock,
+  Briefcase,
+  Check,
 } from "lucide-react";
 import type { CV, CVVersion, CVStatsResponse } from "@shared/types/cv";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export function CVManagerPage() {
+  const navigate = useNavigate();
   const [cvs, setCvs] = useState<CV[]>([]);
   const [stats, setStats] = useState<CVStatsResponse | null>(null);
   const [selectedCV, setSelectedCV] = useState<CV | null>(null);
@@ -28,26 +37,22 @@ export function CVManagerPage() {
   const [showModal, setShowModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [error, setError] = useState("");
+  const [extracting, setExtracting] = useState(false);
 
-  // Filters
   const [roleFilter, setRoleFilter] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<"all" | "7days" | "30days" | "90days">("all");
 
-  // Fetch CVs
   const fetchCVs = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (roleFilter) params.append("role", roleFilter);
       if (activeFilter === "active") params.append("active", "true");
-
       const response = await fetch(`/api/cvs?${params.toString()}`);
-      if (!response.ok) throw new Error("Failed to fetch CVs");
-
-      const data = await response.json();
-      setCvs(data);
+      if (!response.ok) throw new Error("Échec du chargement");
+      setCvs(await response.json());
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -55,61 +60,35 @@ export function CVManagerPage() {
     }
   }, [roleFilter, activeFilter]);
 
-  // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch("/api/cvs/stats");
-      if (!response.ok) throw new Error("Failed to fetch stats");
-
-      const data = await response.json();
-      setStats(data);
-    } catch (err: any) {
-      console.error("Stats error:", err);
-    }
+      const r = await fetch("/api/cvs/stats");
+      if (r.ok) setStats(await r.json());
+    } catch {}
   }, []);
 
-  // Fetch versions for a CV
   const fetchVersions = useCallback(async (cvId: string) => {
     try {
-      const response = await fetch(`/api/cvs/${cvId}/versions`);
-      if (!response.ok) throw new Error("Failed to fetch versions");
-
-      const data = await response.json();
-      setVersions(data);
-    } catch (err: any) {
-      console.error("Versions error:", err);
-    }
+      const r = await fetch(`/api/cvs/${cvId}/versions`);
+      if (r.ok) setVersions(await r.json());
+    } catch {}
   }, []);
 
-  useEffect(() => {
-    fetchCVs();
-    fetchStats();
-  }, [fetchCVs, fetchStats]);
+  useEffect(() => { fetchCVs(); fetchStats(); }, [fetchCVs, fetchStats]);
 
-  // Handle file upload
   const handleUpload = async (file: File, name: string, role: string) => {
     try {
       setIsUploading(true);
       setError("");
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("name", name);
-      if (role) formData.append("role", role);
-
-      const response = await fetch("/api/cvs", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
-      }
-
-      await fetchCVs();
-      await fetchStats();
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("name", name);
+      if (role) fd.append("role", role);
+      const r = await fetch("/api/cvs", { method: "POST", body: fd });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error || "Upload échoué"); }
+      await fetchCVs(); await fetchStats();
       setShowUploadModal(false);
+      toast.success("CV uploadé avec succès");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -117,98 +96,65 @@ export function CVManagerPage() {
     }
   };
 
-  // Handle set active
   const handleSetActive = async (cvId: string) => {
     try {
-      const response = await fetch(`/api/cvs/${cvId}/set-active`, {
-        method: "POST",
-      });
-
-      if (!response.ok) throw new Error("Failed to set active");
-
-      await fetchCVs();
-      await fetchStats();
-    } catch (err: any) {
-      setError(err.message);
-    }
+      const r = await fetch(`/api/cvs/${cvId}/set-active`, { method: "POST" });
+      if (!r.ok) throw new Error("Échec");
+      await fetchCVs(); await fetchStats();
+      toast.success("CV défini comme actif");
+    } catch (err: any) { setError(err.message); }
   };
 
-  // Handle duplicate
   const handleDuplicate = async (cvId: string, newName: string, newRole?: string) => {
     try {
-      const response = await fetch(`/api/cvs/${cvId}/duplicate`, {
+      const r = await fetch(`/api/cvs/${cvId}/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newName, newRole }),
       });
-
-      if (!response.ok) throw new Error("Failed to duplicate");
-
-      await fetchCVs();
-      await fetchStats();
-    } catch (err: any) {
-      setError(err.message);
-    }
+      if (!r.ok) throw new Error("Échec");
+      await fetchCVs(); await fetchStats();
+      toast.success("CV dupliqué");
+    } catch (err: any) { setError(err.message); }
   };
 
-  // Handle delete
   const handleDelete = async (cvId: string) => {
-    if (!confirm("Are you sure you want to delete this CV?")) return;
-
+    if (!confirm("Supprimer ce CV ?")) return;
     try {
-      const response = await fetch(`/api/cvs/${cvId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Failed to delete");
-
-      await fetchCVs();
-      await fetchStats();
-      if (selectedCV?.id === cvId) {
-        setSelectedCV(null);
-        setShowModal(false);
-      }
-    } catch (err: any) {
-      setError(err.message);
-    }
+      const r = await fetch(`/api/cvs/${cvId}`, { method: "DELETE" });
+      if (!r.ok) throw new Error("Échec");
+      await fetchCVs(); await fetchStats();
+      if (selectedCV?.id === cvId) { setSelectedCV(null); setShowModal(false); }
+      toast.success("CV supprimé");
+    } catch (err: any) { setError(err.message); }
   };
 
-  // Handle bulk delete
   const handleBulkDelete = async () => {
     if (selectedCVs.size === 0) return;
-    if (!confirm(`Delete ${selectedCVs.size} CV(s)?`)) return;
-
+    if (!confirm(`Supprimer ${selectedCVs.size} CV(s) ?`)) return;
     try {
-      const response = await fetch("/api/cvs/bulk-delete", {
+      const r = await fetch("/api/cvs/bulk-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selectedCVs) }),
       });
-
-      if (!response.ok) throw new Error("Failed to bulk delete");
-
-      await fetchCVs();
-      await fetchStats();
+      if (!r.ok) throw new Error("Échec");
+      await fetchCVs(); await fetchStats();
       setSelectedCVs(new Set());
-    } catch (err: any) {
-      setError(err.message);
-    }
+      toast.success(`${selectedCVs.size} CV(s) supprimés`);
+    } catch (err: any) { setError(err.message); }
   };
 
-  // Handle bulk export
   const handleBulkExport = async () => {
     if (selectedCVs.size === 0) return;
-
     try {
-      const response = await fetch("/api/cvs/bulk-export", {
+      const r = await fetch("/api/cvs/bulk-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: Array.from(selectedCVs) }),
       });
-
-      if (!response.ok) throw new Error("Failed to export CVs");
-
-      const blob = await response.blob();
+      if (!r.ok) throw new Error("Échec export");
+      const blob = await r.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -217,50 +163,48 @@ export function CVManagerPage() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+    } catch (err: any) { setError(err.message); }
+  };
+
+  const handleExtractSkills = async () => {
+    setExtracting(true);
+    try {
+      const r = await fetch("/api/seeker/skills-dna/refresh", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!r.ok) throw new Error("Extraction échouée");
+      const json = await r.json();
+      const count = json?.data?.skills?.length ?? 0;
+      toast.success(`${count} compétences extraites ! Voir Skills DNA`);
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message);
+    } finally {
+      setExtracting(false);
     }
   };
 
-  // Handle restore version
   const handleRestoreVersion = async (versionId: string) => {
     if (!selectedCV) return;
-    
     try {
-      const response = await fetch(`/api/cvs/${selectedCV.id}/restore/${versionId}`, {
-        method: "POST",
-      });
-
-      if (!response.ok) throw new Error("Failed to restore version");
-
-      await fetchCVs();
-      await fetchStats();
+      const r = await fetch(`/api/cvs/${selectedCV.id}/restore/${versionId}`, { method: "POST" });
+      if (!r.ok) throw new Error("Échec");
+      await fetchCVs(); await fetchStats();
       if (selectedCV) {
         await fetchVersions(selectedCV.id);
-        // Refresh selected CV data
-        const cvResponse = await fetch(`/api/cvs/${selectedCV.id}`);
-        if (cvResponse.ok) {
-          const updatedCV = await cvResponse.json();
-          setSelectedCV(updatedCV);
-        }
+        const cvR = await fetch(`/api/cvs/${selectedCV.id}`);
+        if (cvR.ok) setSelectedCV(await cvR.json());
       }
-    } catch (err: any) {
-      setError(err.message);
-    }
+      toast.success("Version restaurée");
+    } catch (err: any) { setError(err.message); }
   };
 
-  // Toggle CV selection
   const toggleCVSelection = (cvId: string) => {
-    const newSelected = new Set(selectedCVs);
-    if (newSelected.has(cvId)) {
-      newSelected.delete(cvId);
-    } else {
-      newSelected.add(cvId);
-    }
-    setSelectedCVs(newSelected);
+    const s = new Set(selectedCVs);
+    s.has(cvId) ? s.delete(cvId) : s.add(cvId);
+    setSelectedCVs(s);
   };
 
-  // Select all/none
   const toggleSelectAll = () => {
     if (selectedCVs.size === filteredCVs.length) {
       setSelectedCVs(new Set());
@@ -269,275 +213,298 @@ export function CVManagerPage() {
     }
   };
 
-  // Open detail modal
   const openDetailModal = async (cv: CV) => {
     setSelectedCV(cv);
     setShowModal(true);
     await fetchVersions(cv.id);
   };
 
-  // Filter CVs
   const filteredCVs = cvs.filter((cv) => {
     if (activeFilter === "active" && !cv.isActive) return false;
     if (activeFilter === "inactive" && cv.isActive) return false;
     if (roleFilter && cv.role !== roleFilter) return false;
     if (searchQuery && !cv.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    
-    // Date filter
     if (dateFilter !== "all") {
-      const cvDate = new Date(cv.updatedAt);
-      const now = new Date();
-      const daysAgo = {
-        "7days": 7,
-        "30days": 30,
-        "90days": 90,
-      }[dateFilter];
-      
-      if (daysAgo) {
-        const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-        if (cvDate < cutoffDate) return false;
-      }
+      const d = new Date(cv.updatedAt);
+      const days = { "7days": 7, "30days": 30, "90days": 90 }[dateFilter];
+      if (days && d < new Date(Date.now() - days * 86400000)) return false;
     }
-    
     return true;
   });
 
-  // Get unique roles for filter
   const uniqueRoles = Array.from(new Set(cvs.map((cv) => cv.role).filter(Boolean)));
+  const visibleActiveCount = filteredCVs.filter((cv) => cv.isActive).length;
+  const extractionReadyCount = filteredCVs.filter((cv) => cv.fileUrl || cv.resumeData).length;
+  const versionedCount = filteredCVs.filter((cv) => cv.version > 1).length;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white">CV Manager</h1>
-            <p className="text-gray-400 mt-1">
-              Manage your CV library with versioning and role-based organization
-            </p>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/10">
+      <div className="mx-auto max-w-7xl p-6 space-y-6">
+
+        {/* ── Header ── */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 shadow-sm ring-1 ring-blue-500/30">
+              <FileText className="h-6 w-6 text-blue-400" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">CV Manager</h1>
+              <p className="text-xs text-muted-foreground">
+                Bibliothèque de CVs · Versioning · Extraction IA
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Upload CV
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleExtractSkills}
+              disabled={extracting || cvs.length === 0}
+              className="flex items-center gap-2 rounded-lg border border-teal-500/40 bg-teal-500/10 px-4 py-2 text-sm font-medium text-teal-400 transition-all hover:bg-teal-500/20 disabled:opacity-50"
+            >
+              {extracting ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-teal-400 border-t-transparent" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {extracting ? "Extraction…" : "Extraire Skills DNA"}
+            </button>
+            <button
+              onClick={() => navigate("/skills-dna")}
+              className="flex items-center gap-1 rounded-lg border border-border/60 px-3 py-2 text-sm text-muted-foreground transition-all hover:bg-muted/30 hover:text-foreground"
+            >
+              <Target className="h-4 w-4" />
+              Skills DNA
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              Ajouter un CV
+            </button>
+          </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* ── Stats ── */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.totalCVs}</p>
-                  <p className="text-sm text-gray-400">Total CVs</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                  <Star className="w-5 h-5 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.activeCV ? 1 : 0}</p>
-                  <p className="text-sm text-gray-400">Active CV</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: "Total CVs", value: stats.totalCVs, icon: FileText, color: "text-blue-400", bg: "bg-blue-500/15" },
+              { label: "CV actif", value: stats.activeCV ? 1 : 0, icon: Star, color: "text-emerald-400", bg: "bg-emerald-500/15" },
+              { label: "Rôles", value: stats.byRole.length, icon: Briefcase, color: "text-violet-400", bg: "bg-violet-500/15" },
+              { label: "Récents (7j)", value: stats.recentUploads, icon: Clock, color: "text-amber-400", bg: "bg-amber-500/15" },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl border border-border/60 bg-card/80 p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.bg}`}>
+                    <s.icon className={`h-5 w-5 ${s.color}`} />
+                  </div>
+                  <div>
+                    <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                    <p className="text-xs text-muted-foreground">{s.label}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                  <History className="w-5 h-5 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.byRole.length}</p>
-                  <p className="text-sm text-gray-400">Roles</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                  <Upload className="w-5 h-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.recentUploads}</p>
-                  <p className="text-sm text-gray-400">Recent (7d)</p>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
-        {/* Filters and Search */}
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          {/* Search */}
-          <div className="flex-1 min-w-[200px] max-w-md relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+        {/* ── Robustness / quick actions strip ── */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_1fr]">
+          <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-r from-blue-950/25 via-card to-card p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-blue-400" />
+                  <p className="text-sm font-semibold text-foreground">Centre de contrôle CV</p>
+                </div>
+                <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
+                  Sélection multiple, activation du CV principal, export ZIP, restauration de versions
+                  et extraction sécurisée vers Skills DNA à partir de PDF ou JSON RxResume.
+                </p>
+              </div>
+              <div className="grid min-w-[220px] grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
+                  <p className="text-lg font-bold text-blue-400">{filteredCVs.length}</p>
+                  <p className="text-[11px] text-muted-foreground">Visibles</p>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
+                  <p className="text-lg font-bold text-emerald-400">{extractionReadyCount}</p>
+                  <p className="text-[11px] text-muted-foreground">Extractibles</p>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
+                  <p className="text-lg font-bold text-violet-400">{versionedCount}</p>
+                  <p className="text-[11px] text-muted-foreground">Versionnés</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
+            <p className="mb-3 text-sm font-semibold text-foreground">Actions rapides</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={toggleSelectAll}
+                disabled={filteredCVs.length === 0}
+                className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
+              >
+                {selectedCVs.size === filteredCVs.length && filteredCVs.length > 0
+                  ? "Tout désélectionner"
+                  : "Tout sélectionner"}
+              </button>
+              <button
+                onClick={() => setSelectedCVs(new Set())}
+                disabled={selectedCVs.size === 0}
+                className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/40 disabled:opacity-50"
+              >
+                Réinitialiser
+              </button>
+              <button
+                onClick={handleBulkExport}
+                disabled={selectedCVs.size === 0}
+                className="rounded-lg bg-blue-500/10 px-3 py-2 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
+              >
+                Export sélection
+              </button>
+              <button
+                onClick={handleExtractSkills}
+                disabled={extracting || extractionReadyCount === 0}
+                className="rounded-lg bg-teal-500/10 px-3 py-2 text-xs font-medium text-teal-400 transition-colors hover:bg-teal-500/20 disabled:opacity-50"
+              >
+                Lancer extraction IA
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1">
+                {visibleActiveCount} CV actif
+              </span>
+              <span className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-1">
+                PDF / JSON supportés
+              </span>
+              <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1">
+                Historique des versions
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Filters ── */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[200px] max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search CVs..."
+              placeholder="Rechercher…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full rounded-lg border border-border/60 bg-card/80 py-2 pl-10 pr-8 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-2 focus:ring-blue-500/40"
             />
             {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-              >
-                <X className="w-4 h-4" />
+              <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>
+          {[
+            { value: roleFilter, setter: setRoleFilter, options: [{ v: "", l: "Tous les rôles" }, ...uniqueRoles.map((r) => ({ v: r!, l: r! }))] },
+            { value: activeFilter, setter: setActiveFilter as (v: string) => void, options: [{ v: "all", l: "Tous" }, { v: "active", l: "Actifs" }, { v: "inactive", l: "Inactifs" }] },
+            { value: dateFilter, setter: setDateFilter as (v: string) => void, options: [{ v: "all", l: "Tout" }, { v: "7days", l: "7 jours" }, { v: "30days", l: "30 jours" }, { v: "90days", l: "90 jours" }] },
+          ].map((f, i) => (
+            <select
+              key={i}
+              value={f.value}
+              onChange={(e) => f.setter(e.target.value)}
+              className="rounded-lg border border-border/60 bg-card/80 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-blue-500/40"
+            >
+              {f.options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          ))}
 
-          {/* Role Filter */}
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-          >
-            <option value="">All Roles</option>
-            {uniqueRoles.map((role) => (
-              <option key={role} value={role || ""}>
-                {role}
-              </option>
-            ))}
-          </select>
-
-          {/* Active Filter */}
-          <select
-            value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value as any)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
-          </select>
-
-          {/* Date Filter */}
-          <select
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value as any)}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-          >
-            <option value="all">All Time</option>
-            <option value="7days">Last 7 days</option>
-            <option value="30days">Last 30 days</option>
-            <option value="90days">Last 90 days</option>
-          </select>
-
-          {/* Bulk Actions */}
           {selectedCVs.size > 0 && (
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm text-gray-400">{selectedCVs.size} selected</span>
-              <button
-                onClick={handleBulkExport}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Export ZIP
+            <div className="ml-auto flex items-center gap-2">
+              <span className="rounded-full bg-blue-500/15 px-2.5 py-0.5 text-xs font-medium text-blue-400">
+                {selectedCVs.size} sélectionné(s)
+              </span>
+              <button onClick={handleBulkExport} className="flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/20">
+                <Download className="h-3.5 w-3.5" /> Export ZIP
               </button>
-              <button
-                onClick={handleBulkDelete}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
+              <button onClick={handleBulkDelete} className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-500/20">
+                <Trash2 className="h-3.5 w-3.5" /> Supprimer
               </button>
             </div>
           )}
         </div>
 
-        {/* Error Message */}
+        {/* ── Error ── */}
         {error && (
-          <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm text-red-400">{error}</p>
-              <button
-                onClick={() => setError("")}
-                className="text-xs text-red-500 hover:text-red-400 mt-1"
-              >
-                Dismiss
-              </button>
-            </div>
+          <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError("")} className="text-xs underline">Fermer</button>
           </div>
         )}
+
+        {/* ── Grid ── */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="animate-pulse rounded-xl border border-border/40 bg-card/60 p-4">
+                <div className="mb-3 h-36 rounded-lg bg-muted/30" />
+                <div className="mb-2 h-4 w-3/4 rounded bg-muted/30" />
+                <div className="h-3 w-1/2 rounded bg-muted/30" />
+              </div>
+            ))}
+          </div>
+        ) : filteredCVs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 py-16 text-center">
+            <FileText className="mb-4 h-14 w-14 text-muted-foreground/40" />
+            <p className="text-sm font-medium text-muted-foreground">Aucun CV trouvé</p>
+            <p className="mt-1 text-xs text-muted-foreground">Uploadez votre premier CV pour commencer</p>
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="mt-4 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" /> Ajouter un CV
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredCVs.map((cv) => (
+              <CVCard
+                key={cv.id}
+                cv={cv}
+                isSelected={selectedCVs.has(cv.id)}
+                onSelect={() => toggleCVSelection(cv.id)}
+                onSetActive={() => handleSetActive(cv.id)}
+                onDuplicate={handleDuplicate}
+                onDelete={() => handleDelete(cv.id)}
+                onView={() => openDetailModal(cv)}
+              />
+            ))}
+          </div>
+        )}
+
+        {showUploadModal && (
+          <UploadModal onClose={() => setShowUploadModal(false)} onUpload={handleUpload} isUploading={isUploading} />
+        )}
+        {showModal && selectedCV && (
+          <DetailModal
+            cv={selectedCV}
+            versions={versions}
+            onClose={() => { setShowModal(false); setSelectedCV(null); setVersions([]); }}
+            onDelete={() => handleDelete(selectedCV.id)}
+            onRestore={handleRestoreVersion}
+          />
+        )}
       </div>
-
-      {/* CV Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-4 animate-pulse">
-              <div className="h-32 bg-gray-800 rounded mb-3" />
-              <div className="h-4 bg-gray-800 rounded w-3/4 mb-2" />
-              <div className="h-3 bg-gray-800 rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : filteredCVs.length === 0 ? (
-        <div className="text-center py-16">
-          <FileText className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-          <p className="text-gray-400 mb-2">No CVs found</p>
-          <p className="text-sm text-gray-500">Upload your first CV to get started</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredCVs.map((cv) => (
-            <CVCard
-              key={cv.id}
-              cv={cv}
-              isSelected={selectedCVs.has(cv.id)}
-              onSelect={() => toggleCVSelection(cv.id)}
-              onSetActive={() => handleSetActive(cv.id)}
-              onDuplicate={handleDuplicate}
-              onDelete={() => handleDelete(cv.id)}
-              onView={() => openDetailModal(cv)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <UploadModal
-          onClose={() => setShowUploadModal(false)}
-          onUpload={handleUpload}
-          isUploading={isUploading}
-        />
-      )}
-
-      {/* Detail Modal */}
-      {showModal && selectedCV && (
-        <DetailModal
-          cv={selectedCV}
-          versions={versions}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedCV(null);
-            setVersions([]);
-          }}
-          onDelete={() => handleDelete(selectedCV.id)}
-          onRestore={handleRestoreVersion}
-        />
-      )}
     </div>
   );
 }
 
-// CV Card Component
+/* ═══════════════════════════════════════════════════════
+   CV Card
+   ═══════════════════════════════════════════════════════ */
+
 interface CVCardProps {
   cv: CV;
   isSelected: boolean;
@@ -549,106 +516,117 @@ interface CVCardProps {
 }
 
 function CVCard({ cv, isSelected, onSelect, onSetActive, onDuplicate, onDelete, onView }: CVCardProps) {
-  const [showActions, setShowActions] = useState(false);
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const handleDuplicate = () => {
-    const newName = prompt(`Duplicate "${cv.name}" as:`, `${cv.name} (Copy)`);
-    if (newName) {
-      onDuplicate(cv.id, newName, cv.role || undefined);
-    }
-  };
+  const formatDate = (d: Date) =>
+    new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  const hasPreview = Boolean(cv.fileUrl);
 
   return (
     <div
-      className={`bg-gray-900 border ${
-        cv.isActive ? "border-green-500" : isSelected ? "border-red-500" : "border-gray-800"
-      } rounded-lg p-4 hover:border-gray-700 transition-colors relative group`}
+      className={`group relative overflow-hidden rounded-xl border transition-all hover:shadow-md ${
+        cv.isActive
+          ? "border-emerald-500/50 shadow-emerald-500/5"
+          : isSelected
+          ? "border-blue-500/50"
+          : "border-border/60 hover:border-border"
+      } bg-card`}
     >
-      {/* Selection Checkbox */}
-      <button
-        onClick={onSelect}
-        className="absolute top-3 left-3 z-10 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
-      >
+      {/* Checkbox */}
+      <button onClick={(e) => { e.stopPropagation(); onSelect(); }} className="absolute left-3 top-3 z-10">
         {isSelected ? (
-          <CheckSquare className="w-5 h-5 text-red-500" />
+          <CheckSquare className="h-5 w-5 text-blue-500" />
         ) : (
-          <Square className="w-5 h-5" />
+          <Square className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground" />
         )}
       </button>
 
-      {/* Active Badge */}
+      {/* Active badge */}
       {cv.isActive && (
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
-          <Star className="w-3 h-3 text-green-500 fill-green-500" />
-          <span className="text-xs text-green-500 font-medium">Active</span>
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 ring-1 ring-emerald-500/30">
+          <Star className="h-3 w-3 fill-emerald-500 text-emerald-500" />
+          <span className="text-[10px] font-semibold text-emerald-400">Actif</span>
         </div>
       )}
 
-      {/* PDF Preview/Thumbnail */}
-      <div
+      {/* Cover — click to open detail modal */}
+      <button
+        type="button"
         onClick={onView}
-        className="mt-6 h-32 bg-gray-800 rounded flex items-center justify-center mb-3 cursor-pointer hover:bg-gray-750 transition-colors"
+        className="relative block h-40 w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 transition-all hover:brightness-110 focus:outline-none"
       >
-        <FileText className="w-12 h-12 text-gray-600" />
-      </div>
-
-      {/* CV Info */}
-      <div className="mb-3">
-        <h3 className="font-semibold text-white truncate mb-1">{cv.name}</h3>
-        {cv.role && (
-          <p className="text-sm text-gray-400 truncate mb-1">{cv.role}</p>
+        {hasPreview ? (
+          <iframe
+            src={`${cv.fileUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+            className="pointer-events-none h-[300%] w-[300%] origin-top-left scale-[0.333] border-0"
+            title={cv.name}
+            tabIndex={-1}
+          />
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.18),transparent_50%)]" />
+            <div className="flex h-full flex-col items-center justify-center gap-2">
+              <FileText className="h-10 w-10 text-blue-400/50" />
+              <span className="text-xs text-slate-400">Aucun aperçu</span>
+            </div>
+          </>
         )}
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>v{cv.version}</span>
+        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6">
+          <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-300 backdrop-blur-sm">
+            {hasPreview ? "PDF" : "CV"}
+          </span>
+          <span className="flex items-center gap-1 text-[10px] text-white/70">
+            <Eye className="h-3 w-3" /> Ouvrir
+          </span>
+        </div>
+      </button>
+
+      {/* Info */}
+      <div className="p-4">
+        <h3 className="truncate font-semibold text-foreground">{cv.name}</h3>
+        {cv.role && (
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{cv.role}</p>
+        )}
+        <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
+          <span className="rounded bg-muted/30 px-1.5 py-0.5">v{cv.version}</span>
           <span>{formatDate(cv.updatedAt)}</span>
         </div>
         {cv.usageCount > 0 && (
-          <p className="text-xs text-blue-400 mt-1">
-            Used in {cv.usageCount} application{cv.usageCount !== 1 ? "s" : ""}
+          <p className="mt-1 text-[11px] text-blue-400">
+            Utilisé dans {cv.usageCount} candidature{cv.usageCount > 1 ? "s" : ""}
           </p>
         )}
-      </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2">
-        {!cv.isActive && (
-          <button
-            onClick={onSetActive}
-            className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded text-sm font-medium transition-colors"
-            title="Set as active CV"
-          >
-            <Star className="w-3.5 h-3.5" />
-            Set Active
-          </button>
-        )}
-        <button
-          onClick={handleDuplicate}
-          className="flex items-center justify-center p-1.5 hover:bg-gray-800 text-gray-400 hover:text-white rounded transition-colors"
-          title="Duplicate"
-        >
-          <Copy className="w-4 h-4" />
-        </button>
-        <button
-          onClick={onDelete}
-          className="flex items-center justify-center p-1.5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 rounded transition-colors"
-          title="Delete"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {/* 3 action buttons only */}
+        <div className="mt-3 flex items-center gap-1.5">
+          {!cv.isActive ? (
+            <button onClick={onSetActive} className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/20">
+              <Star className="h-3.5 w-3.5" /> Activer
+            </button>
+          ) : (
+            <span className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-400">
+              <Check className="h-3.5 w-3.5" /> CV principal
+            </span>
+          )}
+          <div className="ml-auto flex gap-1">
+            <button
+              onClick={() => { const n = prompt(`Dupliquer "${cv.name}" en :`, `${cv.name} (copie)`); if (n) onDuplicate(cv.id, n, cv.role || undefined); }}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground" title="Dupliquer"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={onDelete} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400" title="Supprimer">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// Upload Modal Component
+/* ═══════════════════════════════════════════════════════
+   Upload Modal
+   ═══════════════════════════════════════════════════════ */
+
 interface UploadModalProps {
   onClose: () => void;
   onUpload: (file: File, name: string, role: string) => Promise<void>;
@@ -660,155 +638,105 @@ function UploadModal({ onClose, onUpload, isUploading }: UploadModalProps) {
   const [role, setRole] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = () => setIsDragging(false);
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.type === "application/pdf" || droppedFile.type === "application/json")) {
-      setFile(droppedFile);
-      if (!name) {
-        setName(droppedFile.name.replace(/\.(pdf|json)$/i, ""));
-      }
+    const f = e.dataTransfer.files[0];
+    if (f && (f.type === "application/pdf" || f.type === "application/json")) {
+      setFile(f);
+      if (!name) setName(f.name.replace(/\.(pdf|json)$/i, ""));
     }
   };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      if (!name) {
-        setName(selectedFile.name.replace(/\.(pdf|json)$/i, ""));
-      }
-    }
+    const f = e.target.files?.[0];
+    if (f) { setFile(f); if (!name) setName(f.name.replace(/\.(pdf|json)$/i, "")); }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !name) return;
-
     await onUpload(file, name, role);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-2xl max-w-md w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800">
-          <h2 className="text-xl font-bold text-white">Upload CV</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-            disabled={isUploading}
-          >
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15">
+              <Upload className="h-5 w-5 text-blue-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">Ajouter un CV</h2>
+          </div>
+          <button onClick={onClose} disabled={isUploading} className="text-muted-foreground hover:text-foreground">
+            <X className="h-5 w-5" />
           </button>
         </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Drag & Drop Zone */}
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+          {/* Drop zone */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed ${
-              isDragging ? "border-red-500 bg-red-500/5" : "border-gray-700 hover:border-gray-600"
-            } rounded-lg p-8 text-center cursor-pointer transition-colors`}
+            onClick={() => inputRef.current?.click()}
+            className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+              isDragging ? "border-blue-500 bg-blue-500/5" : "border-border/60 hover:border-border"
+            }`}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.json"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <Upload className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <input ref={inputRef} type="file" accept=".pdf,.json" onChange={handleFileSelect} className="hidden" />
+            <Upload className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
             {file ? (
               <div>
-                <p className="text-white font-medium mb-1">{file.name}</p>
-                <p className="text-sm text-gray-400">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
+                <p className="font-medium text-foreground">{file.name}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} Mo</p>
               </div>
             ) : (
               <div>
-                <p className="text-gray-400 mb-1">
-                  Drop your CV here or click to browse
-                </p>
-                <p className="text-sm text-gray-500">PDF or JSON (RxResume) • Max 10MB</p>
+                <p className="text-sm text-muted-foreground">Glissez-déposez votre CV ici ou cliquez pour parcourir</p>
+                <p className="mt-1 text-xs text-muted-foreground">PDF ou JSON (RxResume) · Max 10 Mo</p>
               </div>
             )}
           </div>
 
-          {/* Name Input */}
+          {/* Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-              CV Name <span className="text-red-500">*</span>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Nom du CV <span className="text-red-400">*</span>
             </label>
             <input
-              id="name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="e.g., Software Engineer Resume"
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Ex : CV Data Analyst 2026"
+              className="w-full rounded-lg border border-border/60 bg-muted/20 px-4 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
 
-          {/* Role Input */}
+          {/* Role */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-300 mb-2">
-              Target Role
-            </label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Rôle cible</label>
             <input
-              id="role"
               type="text"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              placeholder="e.g., Full Stack Developer"
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              placeholder="Ex : Data Analyst"
+              className="w-full rounded-lg border border-border/60 bg-muted/20 px-4 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isUploading}
-              className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-750 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} disabled={isUploading} className="flex-1 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-muted/40 disabled:opacity-50">
+              Annuler
             </button>
-            <button
-              type="submit"
-              disabled={!file || !name || isUploading}
-              className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
+            <button type="submit" disabled={!file || !name || isUploading} className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-blue-700 disabled:opacity-50">
               {isUploading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Uploading...
-                </>
+                <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Upload…</>
               ) : (
-                <>
-                  <Upload className="w-4 h-4" />
-                  Upload
-                </>
+                <><Upload className="h-4 w-4" /> Uploader</>
               )}
             </button>
           </div>
@@ -818,7 +746,10 @@ function UploadModal({ onClose, onUpload, isUploading }: UploadModalProps) {
   );
 }
 
-// Detail Modal Component
+/* ═══════════════════════════════════════════════════════
+   Detail Modal with PDF preview
+   ═══════════════════════════════════════════════════════ */
+
 interface DetailModalProps {
   cv: CV;
   versions: CVVersion[];
@@ -828,170 +759,104 @@ interface DetailModalProps {
 }
 
 function DetailModal({ cv, versions, onClose, onDelete, onRestore }: DetailModalProps) {
-  const [activeTab, setActiveTab] = useState<"preview" | "versions">("preview");
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const handleRestore = async (versionId: string, versionNumber: number) => {
-    if (!confirm(`Restore to version ${versionNumber}? This will create a new version.`)) return;
-    if (onRestore) {
-      await onRestore(versionId);
-    }
-  };
+  const [tab, setTab] = useState<"preview" | "versions">("preview");
+  const fmt = (d: Date) => new Date(d).toLocaleString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 border border-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-white">{cv.name}</h2>
-            <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
+            <h2 className="text-lg font-semibold text-foreground">{cv.name}</h2>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               {cv.role && <span>{cv.role}</span>}
-              <span>•</span>
-              <span>Version {cv.version}</span>
+              <span className="rounded bg-muted/30 px-1.5 py-0.5">v{cv.version}</span>
               {cv.isActive && (
-                <>
-                  <span>•</span>
-                  <span className="flex items-center gap-1 text-green-500">
-                    <Star className="w-3 h-3 fill-green-500" />
-                    Active
-                  </span>
-                </>
+                <span className="flex items-center gap-0.5 text-emerald-400">
+                  <Star className="h-3 w-3 fill-emerald-500" /> Actif
+                </span>
               )}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-4 px-6 border-b border-gray-800">
-          <button
-            onClick={() => setActiveTab("preview")}
-            className={`py-3 px-1 border-b-2 font-medium transition-colors ${
-              activeTab === "preview"
-                ? "border-red-500 text-red-500"
-                : "border-transparent text-gray-400 hover:text-white"
-            }`}
-          >
-            Preview
-          </button>
-          <button
-            onClick={() => setActiveTab("versions")}
-            className={`py-3 px-1 border-b-2 font-medium transition-colors ${
-              activeTab === "versions"
-                ? "border-red-500 text-red-500"
-                : "border-transparent text-gray-400 hover:text-white"
-            }`}
-          >
-            Version History ({versions.length})
-          </button>
+        <div className="flex gap-1 border-b border-border px-6">
+          {(["preview", "versions"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
+                tab === t ? "text-blue-400" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t === "preview" ? "Aperçu" : `Historique (${versions.length})`}
+              {tab === t && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-t bg-blue-500" />}
+            </button>
+          ))}
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {activeTab === "preview" ? (
+          {tab === "preview" ? (
             <div>
               {cv.fileUrl ? (
-                <iframe
-                  src={cv.fileUrl}
-                  className="w-full h-[600px] bg-white rounded-lg"
-                  title="CV Preview"
-                />
+                <iframe src={cv.fileUrl} className="h-[550px] w-full rounded-lg bg-white" title="CV Preview" />
               ) : (
-                <div className="flex flex-col items-center justify-center h-[600px] bg-gray-800 rounded-lg">
-                  <FileText className="w-16 h-16 text-gray-600 mb-4" />
-                  <p className="text-gray-400">No PDF preview available</p>
-                  {cv.resumeData && (
-                    <p className="text-sm text-gray-500 mt-2">
-                      RxResume JSON data available
-                    </p>
-                  )}
+                <div className="flex h-[400px] flex-col items-center justify-center rounded-lg bg-muted/20">
+                  <FileText className="mb-3 h-14 w-14 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">Pas d'aperçu PDF disponible</p>
+                  {cv.resumeData && <p className="mt-1 text-xs text-muted-foreground">Données JSON RxResume disponibles</p>}
                 </div>
               )}
-
-              {/* Metadata */}
-              <div className="mt-6 grid grid-cols-2 gap-4">
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <p className="text-sm text-gray-400 mb-1">Created</p>
-                  <p className="text-white">{formatDate(cv.createdAt)}</p>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <p className="text-sm text-gray-400 mb-1">Last Updated</p>
-                  <p className="text-white">{formatDate(cv.updatedAt)}</p>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <p className="text-sm text-gray-400 mb-1">Usage Count</p>
-                  <p className="text-white">{cv.usageCount} applications</p>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <p className="text-sm text-gray-400 mb-1">Current Version</p>
-                  <p className="text-white">v{cv.version}</p>
-                </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { label: "Créé le", value: fmt(cv.createdAt) },
+                  { label: "Mis à jour", value: fmt(cv.updatedAt) },
+                  { label: "Candidatures", value: `${cv.usageCount}` },
+                  { label: "Version", value: `v${cv.version}` },
+                ].map((m) => (
+                  <div key={m.label} className="rounded-lg border border-border/50 bg-muted/15 p-3">
+                    <p className="text-[11px] text-muted-foreground">{m.label}</p>
+                    <p className="mt-0.5 text-sm font-medium text-foreground">{m.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
             <div className="space-y-3">
               {versions.length === 0 ? (
-                <div className="text-center py-12">
-                  <History className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                  <p className="text-gray-400">No version history available</p>
+                <div className="py-12 text-center">
+                  <History className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">Aucun historique de version</p>
                 </div>
               ) : (
-                versions.map((version) => (
-                  <div
-                    key={version.id}
-                    className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-colors"
-                  >
+                versions.map((v) => (
+                  <div key={v.id} className="rounded-lg border border-border/50 bg-muted/10 p-4 transition-colors hover:bg-muted/20">
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-medium text-white">Version {version.version}</h4>
-                          {version.version === cv.version && (
-                            <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-xs text-blue-400">
-                              Current
-                            </span>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium text-foreground">Version {v.version}</h4>
+                          {v.version === cv.version && (
+                            <span className="rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-400 ring-1 ring-blue-500/20">Actuelle</span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-400 mb-2">
-                          {formatDate(version.createdAt)}
-                        </p>
-                        {version.changesSummary && (
-                          <p className="text-sm text-gray-300">{version.changesSummary}</p>
-                        )}
+                        <p className="mt-0.5 text-xs text-muted-foreground">{fmt(v.createdAt)}</p>
+                        {v.changesSummary && <p className="mt-1 text-xs text-foreground/80">{v.changesSummary}</p>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        {version.version !== cv.version && onRestore && (
-                          <button
-                            onClick={() => handleRestore(version.id, version.version)}
-                            className="flex items-center gap-1 px-3 py-1 bg-green-500/10 hover:bg-green-500/20 text-green-500 rounded text-sm transition-colors"
-                          >
-                            <History className="w-3.5 h-3.5" />
-                            Restore
+                      <div className="flex gap-2">
+                        {v.version !== cv.version && onRestore && (
+                          <button onClick={() => { if (confirm(`Restaurer la version ${v.version} ?`)) onRestore(v.id); }} className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400 hover:bg-emerald-500/20">
+                            <History className="h-3 w-3" /> Restaurer
                           </button>
                         )}
-                        {version.fileUrl && (
-                          <a
-                            href={version.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm transition-colors"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            Download
+                        {v.fileUrl && (
+                          <a href={v.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 rounded-md bg-muted/30 px-2.5 py-1 text-xs text-foreground hover:bg-muted/50">
+                            <Download className="h-3 w-3" /> Télécharger
                           </a>
                         )}
                       </div>
@@ -1004,19 +869,12 @@ function DetailModal({ cv, versions, onClose, onDelete, onRestore }: DetailModal
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-800">
-          <button
-            onClick={onDelete}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg font-medium transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete CV
+        <div className="flex items-center justify-between border-t border-border px-6 py-4">
+          <button onClick={onDelete} className="flex items-center gap-2 rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-400 hover:bg-red-500/20">
+            <Trash2 className="h-4 w-4" /> Supprimer
           </button>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-750 text-white rounded-lg font-medium transition-colors"
-          >
-            Close
+          <button onClick={onClose} className="rounded-lg border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-muted/30">
+            Fermer
           </button>
         </div>
       </div>

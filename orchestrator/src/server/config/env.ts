@@ -9,7 +9,6 @@ const candidates = [
 
 for (const envPath of candidates) {
   if (existsSync(envPath)) {
-    config({ path: envPath });
-    break;
+    config({ path: envPath, override: true });
   }
 }

@@ -20,7 +20,18 @@ describe.sequential("Tracer links routes", () => {
 
   async function seedTracerFixtures() {
     const { db, schema } = await import("@server/db");
-    const now = new Date().toISOString();
+    const now = new Date();
+
+    const [testUser] = await db
+      .insert(schema.users)
+      .values({
+        id: "test-user-tracer-links",
+        email: "tracer-links@example.com",
+        passwordHash: "dummy-hash",
+        firstName: "Tracer",
+        lastName: "Tester",
+      })
+      .returning({ id: schema.users.id });
 
     const jobId = "job-tracer-fixture";
     const tracerLinkId = "link-tracer-fixture";
@@ -33,6 +44,7 @@ describe.sequential("Tracer links routes", () => {
       employer: "Example Corp",
       jobUrl: "https://example.com/jobs/staff-engineer",
       tracerLinksEnabled: true,
+      userId: testUser.id,
       createdAt: now,
       updatedAt: now,
       discoveredAt: now,

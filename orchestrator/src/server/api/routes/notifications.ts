@@ -1,7 +1,9 @@
-import { Router } from 'express';
-import { db } from '../../db';
-import { jobs } from '../../db/schema';
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { Router } from "express";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { db, schema } from "../../db";
+import type { AuthRequest } from "../../middleware/authenticateJWT";
+
+const { jobs } = schema;
 
 export const notificationsRouter = Router();
 
@@ -9,7 +11,7 @@ export const notificationsRouter = Router();
  * GET /api/notifications/count
  * Get count of unread notifications
  */
-notificationsRouter.get('/count', async (req, res) => {
+notificationsRouter.get("/count", async (req, res) => {
   try {
     // For now, count notifications based on job events:
     // - New jobs in ready stage (last 24h)
@@ -17,6 +19,12 @@ notificationsRouter.get('/count', async (req, res) => {
     // - Jobs with stage changes (last 24h)
     
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const userId = (req as AuthRequest).user?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        error: "Non authentifié",
+      });
+    }
     
     // Count new ready jobs
     const newReadyJobs = await db
@@ -24,16 +32,17 @@ notificationsRouter.get('/count', async (req, res) => {
       .from(jobs)
       .where(
         and(
-          eq(jobs.status, 'ready'),
-          gte(jobs.updatedAt, yesterday)
-        )
+          eq(jobs.userId, userId),
+          eq(jobs.status, "ready"),
+          gte(jobs.updatedAt, yesterday),
+        ),
       );
 
     // Count interview status jobs
     const interviewJobs = await db
       .select({ count: sql<number>`count(*)` })
       .from(jobs)
-      .where(eq(jobs.status, 'interview'));
+      .where(and(eq(jobs.userId, userId), eq(jobs.status, "in_progress")));
 
     // Count recent status changes (approximation based on updatedAt)
     const recentUpdates = await db
@@ -41,9 +50,10 @@ notificationsRouter.get('/count', async (req, res) => {
       .from(jobs)
       .where(
         and(
-          sql`${jobs.status} IN ('applied', 'offer')`,
-          gte(jobs.updatedAt, yesterday)
-        )
+          eq(jobs.userId, userId),
+          inArray(jobs.status, ["applied", "in_progress", "processing"]),
+          gte(jobs.updatedAt, yesterday),
+        ),
       );
 
     const totalCount = 
@@ -60,10 +70,10 @@ notificationsRouter.get('/count', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Notifications count error:', error);
+    console.error("Notifications count error:", error);
     return res.status(500).json({
-      error: 'Failed to fetch notifications count',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      error: "Failed to fetch notifications count",
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -72,7 +82,7 @@ notificationsRouter.get('/count', async (req, res) => {
  * GET /api/notifications
  * Get full notifications list (placeholder for future implementation)
  */
-notificationsRouter.get('/', async (req, res) => {
+notificationsRouter.get("/", async (req, res) => {
   try {
     // TODO: Implement full notifications system
     return res.json({
@@ -80,10 +90,10 @@ notificationsRouter.get('/', async (req, res) => {
       totalCount: 0,
     });
   } catch (error) {
-    console.error('Notifications error:', error);
+    console.error("Notifications error:", error);
     return res.status(500).json({
-      error: 'Failed to fetch notifications',
-      message: error instanceof Error ? error.message : 'Unknown error',
+      error: "Failed to fetch notifications",
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });

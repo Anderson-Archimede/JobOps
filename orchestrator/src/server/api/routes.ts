@@ -30,6 +30,12 @@ import { tracerLinksRouter } from "./routes/tracer-links";
 import { visaSponsorsRouter } from "./routes/visa-sponsors";
 import { webhookRouter } from "./routes/webhook";
 import { authenticateJWT } from "../middleware/authenticateJWT";
+import { scrapingRouter } from "./routes/scraping";
+import { seekerDashboardRouter } from "./routes/seeker-dashboard";
+import { seekerProfileRouter } from "./routes/seeker-profile";
+import { seekerJobsRouter } from "./routes/seeker-jobs";
+import { seekerInterviewRouter } from "./routes/seeker-interview";
+import { seekerSkillsDNARouter } from "./routes/seeker-skills-dna";
 
 export const apiRouter = Router();
 
@@ -62,3 +68,9 @@ apiRouter.use("/tracer-links", authenticateJWT, tracerLinksRouter);
 apiRouter.use("/queues", authenticateJWT, queuesRouter);
 apiRouter.use("/search", authenticateJWT, searchRouter);
 apiRouter.use("/notifications", authenticateJWT, notificationsRouter);
+apiRouter.use("/seeker", authenticateJWT, seekerDashboardRouter);
+apiRouter.use("/seeker", authenticateJWT, seekerProfileRouter);
+apiRouter.use("/seeker", authenticateJWT, scrapingRouter);
+apiRouter.use("/seeker", authenticateJWT, seekerJobsRouter);
+apiRouter.use("/seeker", authenticateJWT, seekerInterviewRouter);
+apiRouter.use("/seeker", authenticateJWT, seekerSkillsDNARouter);

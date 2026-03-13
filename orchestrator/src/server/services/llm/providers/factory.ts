@@ -40,6 +40,7 @@ export function buildChatCompletionsBody(args: {
     model: args.model,
     messages: args.messages,
     stream: false,
+    max_tokens: 4096,
     ...(args.extra ?? {}),
   };
 

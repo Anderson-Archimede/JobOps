@@ -3,7 +3,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp,
   TrendingDown,
@@ -17,7 +18,10 @@ import {
   Send,
   Users,
   Database,
+  Sparkles,
 } from 'lucide-react';
+import { ScrapingModal } from '@client/components/dashboard/ScrapingModal';
+import { InterviewPrepModal } from '@client/components/dashboard/InterviewPrepModal';
 import {
   LineChart,
   Line,
@@ -66,6 +70,50 @@ interface ActivityItem {
   timestamp: string;
   link: string;
   metadata?: Record<string, unknown>;
+}
+
+type KpiTrend = 'up' | 'down' | 'stable';
+
+interface KpiResult {
+  value: number;
+  previousValue: number;
+  delta: number;
+  deltaLabel: string;
+  trend: KpiTrend;
+}
+
+interface SeekerDashboardKpis {
+  activeApplications: KpiResult;
+  avgPSOScore: KpiResult;
+  responseRate: KpiResult;
+  scheduledInterviews: KpiResult;
+  computedAt: string;
+}
+
+interface MarketPulseSkill {
+  name: string;
+  tensionScore: number;
+  trendDelta: number;
+  salaryP50: number;
+}
+
+interface MarketPulse {
+  skills: MarketPulseSkill[];
+}
+
+interface SeekerActivityItem {
+  type: string;
+  description: string;
+  timestamp: string;
+  icon: string;
+}
+
+interface SeekerDashboardResponse {
+  kpis: SeekerDashboardKpis;
+  marketPulse: MarketPulse;
+  momentumScore: number;
+  recentActivity: SeekerActivityItem[];
+  insightOfDay: string;
 }
 
 interface DatasetsSummary {
@@ -118,6 +166,9 @@ const SkeletonChart = () => (
 );
 
 export const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   // State
   const [kpis, setKpis] = useState<KPIs | null>(null);
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
@@ -125,6 +176,15 @@ export const DashboardPage: React.FC = () => {
   const [topCompanies, setTopCompanies] = useState<TopCompany[]>([]);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [datasetsSummary, setDatasetsSummary] = useState<DatasetsSummary | null>(null);
+  const [seekerKpis, setSeekerKpis] = useState<SeekerDashboardKpis | null>(null);
+  const [marketPulse, setMarketPulse] = useState<MarketPulse | null>(null);
+  const [momentumScore, setMomentumScore] = useState<number | null>(null);
+  const [seekerActivity, setSeekerActivity] = useState<SeekerActivityItem[]>([]);
+  const [insightOfDay, setInsightOfDay] = useState<string>('');
+  const [scrapingOpen, setScrapingOpen] = useState(false);
+  const [interviewOpen, setInterviewOpen] = useState(false);
+  const [newJobsCount, setNewJobsCount] = useState<number>(0);
+  const [refreshJobsCount, setRefreshJobsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
@@ -142,6 +202,7 @@ export const DashboardPage: React.FC = () => {
           fetch('/api/analytics/top-companies'),
           fetch('/api/analytics/activity'),
           fetch('/api/analytics/datasets-summary'),
+          fetch('/api/seeker/dashboard'),
         ]);
 
         // Check each response status before parsing
@@ -157,7 +218,7 @@ export const DashboardPage: React.FC = () => {
           return Promise.resolve(null);
         });
 
-        const [kpisRes, dailyRes, statusRes, companiesRes, activityRes, datasetsRes] = 
+        const [kpisRes, dailyRes, statusRes, companiesRes, activityRes, datasetsRes, seekerRes] = 
           await Promise.all(jsonPromises);
 
         // Update state with null-safe checks
@@ -167,6 +228,14 @@ export const DashboardPage: React.FC = () => {
         if (companiesRes?.ok && companiesRes?.data) setTopCompanies(companiesRes.data);
         if (activityRes?.ok && activityRes?.data) setActivities(activityRes.data);
         if (datasetsRes?.ok && datasetsRes?.data) setDatasetsSummary(datasetsRes.data);
+        if (seekerRes?.ok && seekerRes?.data) {
+          const data = seekerRes.data as SeekerDashboardResponse;
+          setSeekerKpis(data.kpis);
+          setMarketPulse(data.marketPulse);
+          setMomentumScore(data.momentumScore);
+          setSeekerActivity(data.recentActivity);
+          setInsightOfDay(data.insightOfDay);
+        }
         
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
@@ -180,11 +249,34 @@ export const DashboardPage: React.FC = () => {
     fetchData();
   }, []);
 
+  // Fetch new jobs count for badge (every 5 minutes, or when scraping completes)
+  useEffect(() => {
+    const fetchNewJobsCount = async () => {
+      try {
+        const response = await fetch('/api/seeker/jobs/count-new');
+        if (response.ok) {
+          const data = await response.json();
+          setNewJobsCount(data.count ?? 0);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch new jobs count:', err);
+      }
+    };
+
+    fetchNewJobsCount();
+    const interval = setInterval(fetchNewJobsCount, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [refreshJobsCount]);
+
   // Counter animations
   const animatedTotalApps = useCountUp(kpis?.totalApps || 0);
   const animatedAvgScore = useCountUp(kpis?.avgScore || 0);
   const animatedResponseRate = useCountUp(kpis?.responseRate || 0);
   const animatedPendingJobs = useCountUp(kpis?.pendingJobs || 0);
+  const animatedActiveApplications = useCountUp(seekerKpis?.activeApplications.value || 0);
+  const animatedSeekerAvgScore = useCountUp(seekerKpis?.avgPSOScore.value || 0);
+  const animatedSeekerResponseRate = useCountUp(seekerKpis?.responseRate.value || 0);
+  const animatedScheduledInterviews = useCountUp(seekerKpis?.scheduledInterviews.value || 0);
 
   // Chart colors
   const STATUS_COLORS: Record<string, string> = {
@@ -200,6 +292,24 @@ export const DashboardPage: React.FC = () => {
     cv_versions: 'text-purple-400',
     applications: 'text-green-400',
     custom: 'text-orange-400',
+  };
+
+  const getMomentumColor = (score: number) => {
+    if (score <= 33) return "text-red-500";
+    if (score <= 66) return "text-orange-400";
+    return "text-emerald-400";
+  };
+
+  const getMomentumStroke = (score: number) => {
+    if (score <= 33) return "#ef4444";
+    if (score <= 66) return "#f97316";
+    return "#22c55e";
+  };
+
+  const getMomentumLabel = (score: number) => {
+    if (score > 67) return "Excellent rythme !";
+    if (score >= 34) return "Bon rythme, continuez !";
+    return "Augmentez votre cadence";
   };
 
   // Format relative time
@@ -243,6 +353,15 @@ export const DashboardPage: React.FC = () => {
         <div className="flex h-16 items-center px-6">
           <h1 className="text-2xl font-bold">Dashboard</h1>
         </div>
+        <div className="hidden md:flex items-center gap-3 pr-6">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium hover:bg-card/80 transition-colors"
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Market Pulse Live</span>
+          </button>
+        </div>
       </header>
 
       {/* Error Display */}
@@ -268,6 +387,60 @@ export const DashboardPage: React.FC = () => {
 
       {/* Content */}
       <div className="flex-1 p-6 space-y-6">
+        {/* Quick Actions */}
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-card/70 px-4 py-3 backdrop-blur-md">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/80">
+            Quick Actions
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setScrapingOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+            >
+              <Activity className="h-3 w-3" />
+              Lancer un scraping
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/jobs/all?filter=new&sort=createdAt')}
+              className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium hover:bg-secondary/80 transition-colors relative"
+            >
+              <Briefcase className="h-3 w-3" />
+              Voir nouvelles offres
+              {newJobsCount > 0 && (
+                <span className="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                  {newJobsCount > 99 ? '99+' : newJobsCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInterviewOpen(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/40 transition-colors"
+            >
+              <Clock className="h-3 w-3" />
+              Préparer entretien
+            </button>
+          </div>
+        </div>
+
+        <ScrapingModal
+          open={scrapingOpen}
+          onOpenChange={setScrapingOpen}
+          onSuccess={() => {
+            setScrapingOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            queryClient.invalidateQueries({ queryKey: ['jobs-new-count'] });
+            setRefreshJobsCount((r) => r + 1);
+          }}
+        />
+
+        <InterviewPrepModal
+          open={interviewOpen}
+          onOpenChange={setInterviewOpen}
+        />
+
         {/* SECTION 1 - KPI Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Total Applications */}
@@ -376,6 +549,324 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Intelligent Seeker KPIs + Momentum + Market Pulse */}
+        <div className="grid gap-6 xl:grid-cols-3">
+          {/* Seeker KPIs */}
+          <div className="space-y-4 xl:col-span-2">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Active Applications */}
+              <div className="rounded-xl border border-white/10 bg-card/85 backdrop-blur-md p-5 shadow-lg relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-sky-500/5" />
+                <div className="relative flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                    Active Applications
+                  </p>
+                  <div className="p-2 rounded-lg bg-emerald-500/15">
+                    <Briefcase className="h-4 w-4 text-emerald-400" />
+                  </div>
+                </div>
+                <div className="relative space-y-1">
+                  <p className="text-2xl font-bold tracking-tight">
+                    {animatedActiveApplications}
+                  </p>
+                  {seekerKpis && (
+                    <p
+                      className={`text-xs flex items-center gap-1 ${
+                        seekerKpis.activeApplications.trend === 'up'
+                          ? 'text-emerald-500'
+                          : seekerKpis.activeApplications.trend === 'down'
+                          ? 'text-red-500'
+                          : 'text-slate-400'
+                      }`}
+                      title={`Semaine précédente : ${seekerKpis.activeApplications.previousValue}`}
+                    >
+                      {seekerKpis.activeApplications.trend === 'up' && '↑'}
+                      {seekerKpis.activeApplications.trend === 'down' && '↓'}
+                      {seekerKpis.activeApplications.trend === 'stable' && '→'}
+                      <span>{seekerKpis.activeApplications.deltaLabel}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Avg PSO Score */}
+              <div className="rounded-xl border border-white/10 bg-card/85 backdrop-blur-md p-5 shadow-lg relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 via-transparent to-fuchsia-500/5" />
+                <div className="relative flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                    Avg PSO Score
+                  </p>
+                  <div className="p-2 rounded-lg bg-indigo-500/15">
+                    <Target className="h-4 w-4 text-indigo-400" />
+                  </div>
+                </div>
+                <div className="relative flex items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <p className="text-2xl font-bold tracking-tight">
+                        {animatedSeekerAvgScore}
+                      </p>
+                      <span className="text-xs text-muted-foreground">/100</span>
+                    </div>
+                    {seekerKpis && (
+                      <p
+                        className={`text-xs mt-1 flex items-center gap-1 ${
+                          seekerKpis.avgPSOScore.trend === 'up'
+                            ? 'text-emerald-500'
+                            : seekerKpis.avgPSOScore.trend === 'down'
+                            ? 'text-red-500'
+                            : 'text-slate-400'
+                        }`}
+                        title={`Semaine précédente : ${seekerKpis.avgPSOScore.previousValue}`}
+                      >
+                        {seekerKpis.avgPSOScore.trend === 'up' && '↑'}
+                        {seekerKpis.avgPSOScore.trend === 'down' && '↓'}
+                        {seekerKpis.avgPSOScore.trend === 'stable' && '→'}
+                        <span>{seekerKpis.avgPSOScore.deltaLabel}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="relative h-12 w-12">
+                    <svg viewBox="0 0 36 36" className="h-12 w-12">
+                      <path
+                        className="text-muted stroke-current"
+                        strokeWidth="3.5"
+                        fill="none"
+                        d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                      />
+                      <path
+                        className="stroke-current"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        fill="none"
+                        style={{
+                          stroke: "#6366f1",
+                          strokeDasharray: "97",
+                          strokeDashoffset: `${97 - ((seekerKpis?.avgPSOScore || 0) / 100) * 97}`,
+                          transition: "stroke-dashoffset 0.8s ease-out",
+                        }}
+                        d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Response Rate */}
+              <div className="rounded-xl border border-white/10 bg-card/85 backdrop-blur-md p-5 shadow-lg relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/5 via-transparent to-rose-500/5" />
+                <div className="relative flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                    Response Rate
+                  </p>
+                  <div className="p-2 rounded-lg bg-amber-500/15">
+                    <CheckCircle className="h-4 w-4 text-amber-400" />
+                  </div>
+                </div>
+                <div className="relative space-y-1">
+                  <div className="flex items-baseline gap-1">
+                    <p className="text-2xl font-bold tracking-tight">
+                      {animatedSeekerResponseRate}
+                    </p>
+                    <span className="text-xs text-muted-foreground">%</span>
+                  </div>
+                  {seekerKpis && (
+                    <p
+                      className={`text-xs flex items-center gap-1 ${
+                        seekerKpis.responseRate.trend === 'up'
+                          ? 'text-emerald-500'
+                          : seekerKpis.responseRate.trend === 'down'
+                          ? 'text-red-500'
+                          : 'text-slate-400'
+                      }`}
+                      title={`Semaine précédente : ${seekerKpis.responseRate.previousValue}%`}
+                    >
+                      {seekerKpis.responseRate.trend === 'up' && '↑'}
+                      {seekerKpis.responseRate.trend === 'down' && '↓'}
+                      {seekerKpis.responseRate.trend === 'stable' && '→'}
+                      <span>{seekerKpis.responseRate.deltaLabel}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Scheduled Interviews */}
+              <div className="rounded-xl border border-white/10 bg-card/85 backdrop-blur-md p-5 shadow-lg relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-sky-500/5 via-transparent to-emerald-500/5" />
+                <div className="relative flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                    Scheduled Interviews
+                  </p>
+                  <div className="p-2 rounded-lg bg-sky-500/15">
+                    <Clock className="h-4 w-4 text-sky-400" />
+                  </div>
+                </div>
+                <div className="relative space-y-1">
+                  <p className="text-2xl font-bold tracking-tight">
+                    {animatedScheduledInterviews}
+                  </p>
+                  {seekerKpis && (
+                    <p
+                      className={`text-xs flex items-center gap-1 ${
+                        seekerKpis.scheduledInterviews.trend === 'up'
+                          ? 'text-emerald-500'
+                          : seekerKpis.scheduledInterviews.trend === 'down'
+                          ? 'text-red-500'
+                          : 'text-slate-400'
+                      }`}
+                      title={`Semaine précédente : ${seekerKpis.scheduledInterviews.previousValue}`}
+                    >
+                      {seekerKpis.scheduledInterviews.trend === 'up' && '↑'}
+                      {seekerKpis.scheduledInterviews.trend === 'down' && '↓'}
+                      {seekerKpis.scheduledInterviews.trend === 'stable' && '→'}
+                      <span>{seekerKpis.scheduledInterviews.deltaLabel}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Market Pulse */}
+            <div className="rounded-xl border border-border bg-card/90 backdrop-blur-md p-5 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold">Market Pulse</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Tension du marché sur vos compétences clés
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Temps réel
+                </div>
+              </div>
+              {!marketPulse ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-10 rounded-lg bg-muted/40 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {marketPulse.skills.slice(0, 5).map((skill) => (
+                    <div
+                      key={skill.name}
+                      className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{skill.name}</p>
+                        <div className="mt-1 h-1.5 w-full rounded-full bg-muted/40 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.round(skill.tensionScore * 100)}%`,
+                              background:
+                                "linear-gradient(to right, #f97373, #fb923c, #22c55e)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs font-medium">
+                          {Math.round(skill.salaryP50 / 1000)}k€
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            skill.trendDelta > 0
+                              ? "bg-emerald-500/10 text-emerald-300"
+                              : skill.trendDelta < 0
+                              ? "bg-red-500/10 text-red-300"
+                              : "bg-muted/40 text-muted-foreground"
+                          }`}
+                        >
+                          {skill.trendDelta > 0 && <TrendingUp className="h-3 w-3" />}
+                          {skill.trendDelta < 0 && <TrendingDown className="h-3 w-3" />}
+                          {skill.trendDelta === 0 && <span>•</span>}
+                          <span>
+                            {skill.trendDelta > 0
+                              ? "Trending up"
+                              : skill.trendDelta < 0
+                              ? "Trending down"
+                              : "Stable"}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Momentum Score + Insight */}
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-xl p-6 shadow-xl flex flex-col items-center justify-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
+                Momentum Score
+              </p>
+              <div className="relative h-40 w-40 mb-4">
+                <svg viewBox="0 0 36 36" className="h-40 w-40">
+                  <path
+                    className="text-muted stroke-current"
+                    strokeWidth="3.5"
+                    fill="none"
+                    d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                  />
+                  <path
+                    className="stroke-current"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    fill="none"
+                    style={{
+                      stroke: getMomentumStroke(momentumScore || 0),
+                      strokeDasharray: "97",
+                      strokeDashoffset: `${
+                        97 - ((momentumScore || 0) / 100) * 97
+                      }`,
+                      transition: "stroke-dashoffset 0.8s ease-out",
+                    }}
+                    d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span
+                    className={`text-3xl font-bold tracking-tight ${getMomentumColor(
+                      momentumScore || 0,
+                    )}`}
+                  >
+                    {momentumScore ?? "--"}
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-1">
+                    / 100
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center max-w-xs">
+                {momentumScore !== null
+                  ? getMomentumLabel(momentumScore)
+                  : "Momentum en calcul... gardez votre cadence de candidatures."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/20 via-amber-500/10 to-rose-500/20 p-5 shadow-lg flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20">
+                  <Sparkles className="h-4 w-4 text-amber-300" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-100/80">
+                    Insight du jour
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-amber-50">
+                {insightOfDay ||
+                  "JobOps analyse votre pipeline pour identifier les meilleurs leviers d'action cette semaine."}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* SECTION 2 - Charts */}
@@ -600,13 +1091,31 @@ export const DashboardPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-            ) : activities.length === 0 ? (
+            ) : activities.length === 0 && seekerActivity.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-muted/50 rounded-xl">
                 <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
                 <p className="text-muted-foreground">No recent activity</p>
               </div>
             ) : (
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {seekerActivity.slice(0, 10).map((item, index) => (
+                  <div
+                    key={`seeker-${index}`}
+                    className="flex items-start gap-4 p-3 rounded-xl bg-muted/20 border border-border/40"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background border border-border/70">
+                      <Activity className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {item.description}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(item.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
                 {activities.map((activity, index) => (
                   <Link
                     key={index}
@@ -633,6 +1142,14 @@ export const DashboardPage: React.FC = () => {
                 ))}
               </div>
             )}
+            <div className="mt-4 flex justify-end">
+              <Link
+                to="/overview"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Voir tout
+              </Link>
+            </div>
           </div>
         </div>
       </div>

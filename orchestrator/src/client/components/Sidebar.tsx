@@ -28,6 +28,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,12 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'AI Insights',
         icon: Lightbulb,
         path: '/ai-insights',
+      },
+      {
+        id: 'skills-dna',
+        label: 'Skills DNA',
+        icon: Target,
+        path: '/skills-dna',
       },
     ],
   },

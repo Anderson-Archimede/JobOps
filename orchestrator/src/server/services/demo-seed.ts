@@ -6,19 +6,25 @@ import {
   type DemoDefaultSettings,
 } from "@server/config/demo-defaults";
 import { db, schema } from "@server/db/index";
+import { eq } from "drizzle-orm";
+
+if (process.env.NODE_ENV === "production") {
+  throw new Error("demo-seed interdit en production");
+}
 
 type BuiltDemoBaseline = {
-  resetAt: string;
+  resetAt: Date;
   settings: DemoDefaultSettings;
   pipelineRuns: Array<typeof schema.pipelineRuns.$inferInsert>;
-  jobs: Array<typeof schema.jobs.$inferInsert>;
+  jobs: Array<Omit<typeof schema.jobs.$inferInsert, "userId">>;
   stageEvents: Array<typeof schema.stageEvents.$inferInsert>;
 };
 
-const { interviews, jobs, pipelineRuns, settings, stageEvents, tasks } = schema;
+const { interviews, jobs, pipelineRuns, settings, stageEvents, tasks, users } =
+  schema;
 
-function toIsoFromOffset(now: Date, offsetMinutes: number): string {
-  return new Date(now.getTime() - offsetMinutes * 60 * 1000).toISOString();
+function toDateFromOffset(now: Date, offsetMinutes: number): Date {
+  return new Date(now.getTime() - offsetMinutes * 60 * 1000);
 }
 
 function makeDemoLink(
@@ -31,7 +37,7 @@ function makeDemoLink(
 }
 
 export function buildDemoBaseline(now: Date): BuiltDemoBaseline {
-  const resetAt = now.toISOString();
+  const resetAt = now;
 
   return {
     resetAt,
@@ -39,8 +45,8 @@ export function buildDemoBaseline(now: Date): BuiltDemoBaseline {
     pipelineRuns: DEMO_DEFAULT_PIPELINE_RUNS.map((run) => ({
       id: run.id,
       status: run.status,
-      startedAt: toIsoFromOffset(now, run.startedOffsetMinutes),
-      completedAt: toIsoFromOffset(now, run.completedOffsetMinutes),
+      startedAt: toDateFromOffset(now, run.startedOffsetMinutes),
+      completedAt: toDateFromOffset(now, run.completedOffsetMinutes),
       jobsDiscovered: run.jobsDiscovered,
       jobsProcessed: run.jobsProcessed,
       errorMessage: run.errorMessage ?? null,
@@ -66,12 +72,12 @@ export function buildDemoBaseline(now: Date): BuiltDemoBaseline {
         : null,
       selectedProjectIds: job.selectedProjectIds ?? null,
       pdfPath: job.pdfPath ?? null,
-      discoveredAt: toIsoFromOffset(now, job.discoveredOffsetMinutes),
+      discoveredAt: toDateFromOffset(now, job.discoveredOffsetMinutes),
       appliedAt:
         job.status === "applied" && typeof job.appliedOffsetMinutes === "number"
-          ? toIsoFromOffset(now, job.appliedOffsetMinutes)
+          ? toDateFromOffset(now, job.appliedOffsetMinutes)
           : null,
-      createdAt: toIsoFromOffset(now, job.discoveredOffsetMinutes),
+      createdAt: toDateFromOffset(now, job.discoveredOffsetMinutes),
       updatedAt: resetAt,
     })),
     stageEvents: DEMO_DEFAULT_STAGE_EVENTS.map((event) => ({
@@ -93,13 +99,26 @@ export function buildDemoBaseline(now: Date): BuiltDemoBaseline {
 export async function applyDemoBaseline(
   baseline: BuiltDemoBaseline,
 ): Promise<void> {
-  db.transaction((tx) => {
-    tx.delete(stageEvents).run();
-    tx.delete(tasks).run();
-    tx.delete(interviews).run();
-    tx.delete(jobs).run();
-    tx.delete(pipelineRuns).run();
-    tx.delete(settings).run();
+  const adminUser = await db.query.users.findFirst({
+    columns: { id: true },
+  });
+  if (!adminUser) {
+    throw new Error("Seed: aucun user admin trouvé.");
+  }
+  const seedUserId = adminUser.id;
+
+  const jobsWithUserId = baseline.jobs.map((job) => ({
+    ...job,
+    userId: seedUserId,
+  }));
+
+  await db.transaction(async (tx) => {
+    await tx.delete(stageEvents);
+    await tx.delete(tasks);
+    await tx.delete(interviews);
+    await tx.delete(jobs);
+    await tx.delete(pipelineRuns);
+    await tx.delete(settings);
 
     const settingRows = Object.entries(baseline.settings).map(
       ([key, value]) => ({
@@ -110,17 +129,17 @@ export async function applyDemoBaseline(
       }),
     );
     if (settingRows.length > 0) {
-      tx.insert(settings).values(settingRows).run();
+      await tx.insert(settings).values(settingRows);
     }
 
     if (baseline.pipelineRuns.length > 0) {
-      tx.insert(pipelineRuns).values(baseline.pipelineRuns).run();
+      await tx.insert(pipelineRuns).values(baseline.pipelineRuns);
     }
-    if (baseline.jobs.length > 0) {
-      tx.insert(jobs).values(baseline.jobs).run();
+    if (jobsWithUserId.length > 0) {
+      await tx.insert(jobs).values(jobsWithUserId);
     }
     if (baseline.stageEvents.length > 0) {
-      tx.insert(stageEvents).values(baseline.stageEvents).run();
+      await tx.insert(stageEvents).values(baseline.stageEvents);
     }
   });
 }

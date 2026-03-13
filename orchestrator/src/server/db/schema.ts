@@ -31,6 +31,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { UserProfileData } from "../types/userProfile";
 
 export const jobs = pgTable("jobs", {
   id: text("id").primaryKey(),
@@ -108,6 +109,10 @@ export const jobs = pgTable("jobs", {
   sponsorMatchScore: real("sponsor_match_score"),
   sponsorMatchNames: text("sponsor_match_names"),
 
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+
   // Timestamps
   discoveredAt: timestamp("discovered_at").notNull().defaultNow(),
   processedAt: timestamp("processed_at"),
@@ -153,6 +158,31 @@ export const interviews = pgTable("interviews", {
   durationMins: integer("duration_mins"),
   type: text("type", { enum: INTERVIEW_TYPES }).notNull(),
   outcome: text("outcome", { enum: INTERVIEW_OUTCOMES }),
+});
+
+export const scrapingSessions = pgTable("scraping_sessions", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  status: text("status", {
+    enum: ["pending", "running", "completed", "failed"],
+  })
+    .notNull()
+    .default("pending"),
+  platforms: text("platforms").array().notNull(),
+  keywords: text("keywords").notNull(),
+  location: text("location"),
+  contractTypes: text("contract_types").array(),
+  maxResults: integer("max_results").default(50),
+  jobsFound: integer("jobs_found").default(0),
+  errors: jsonb("errors")
+    .$type<string[]>()
+    .default([]),
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
 });
 
 export const pipelineRuns = pgTable("pipeline_runs", {
@@ -500,7 +530,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),
-  profileData: jsonb("profile_data"), // Resume profile, preferences, etc.
+  profileData: jsonb("profile_data").$type<UserProfileData | null>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -549,3 +579,151 @@ export type CVRow = typeof cvs.$inferSelect;
 export type NewCVRow = typeof cvs.$inferInsert;
 export type CVVersionRow = typeof cvVersions.$inferSelect;
 export type NewCVVersionRow = typeof cvVersions.$inferInsert;
+
+export const sseCheckpoints = pgTable("sse_checkpoints", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  lastJobCount: integer("last_job_count").notNull().default(0),
+  lastCheckedAt: timestamp("last_checked_at").notNull().defaultNow(),
+  lastEventSentAt: timestamp("last_event_sent_at"),
+});
+
+export const jobViews = pgTable(
+  "job_views",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    jobId: text("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    viewedAt: timestamp("viewed_at").defaultNow(),
+  },
+  (t) => ({
+    uniqueView: uniqueIndex("job_views_user_job_unique").on(t.userId, t.jobId),
+  }),
+);
+
+export type JobViewRow = typeof jobViews.$inferSelect;
+export type NewJobViewRow = typeof jobViews.$inferInsert;
+
+export interface InterviewQuestion {
+  question: string;
+  type: "behavioral" | "technical" | "motivational" | "situational";
+  difficulty: 1 | 2 | 3;
+  expectedKeywords: string[];
+  starRequired: boolean;
+  tipForCandidate: string;
+}
+
+export const interviewPrepSessions = pgTable("interview_prep_sessions", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  applicationId: text("application_id")
+    .references(() => jobs.id, { onDelete: "set null" }),
+  mode: text("mode", { enum: ["flash", "full", "technical"] })
+    .notNull()
+    .default("flash"),
+  questions: jsonb("questions").$type<InterviewQuestion[]>().default([]),
+  jobTitle: text("job_title"),
+  company: text("company"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export type InterviewPrepSessionRow = typeof interviewPrepSessions.$inferSelect;
+export type NewInterviewPrepSessionRow = typeof interviewPrepSessions.$inferInsert;
+
+// Skills DNA: extracted skills and optional gap analysis cache.
+// Optional later: add embedding column (pgvector) per skill for semantic search.
+export const SKILL_CATEGORIES = [
+  "TECHNICAL",
+  "BI_ANALYTICS",
+  "DATA_ENGINEERING",
+  "CLOUD",
+  "SOFT",
+  "DOMAIN",
+] as const;
+export const SKILL_LEVELS = ["NOTIONS", "INTERMEDIATE", "ADVANCED", "EXPERT"] as const;
+
+export interface ExtractedSkill {
+  name: string;
+  category: (typeof SKILL_CATEGORIES)[number];
+  level: (typeof SKILL_LEVELS)[number];
+  evidence: string;
+}
+
+export interface RecommendedResource {
+  label: string;
+  url?: string;
+  estimatedDuration?: string;
+}
+
+export interface SkillGapItem {
+  skillName: string;
+  frequency: number;
+  frequencyPercent: number;
+  recommendedResource: RecommendedResource;
+}
+
+export const skillsProfile = pgTable(
+  "skills_profile",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    skills: jsonb("skills").$type<ExtractedSkill[]>().default([]),
+    gapAnalysis: jsonb("gap_analysis").$type<SkillGapItem[]>().default([]),
+    lastUpdated: timestamp("last_updated").defaultNow(),
+    gapAnalysisAt: timestamp("gap_analysis_at"),
+  },
+  (t) => ({
+    userUnique: uniqueIndex("skills_profile_user_id_unique").on(t.userId),
+  }),
+);
+
+export type SkillsProfileRow = typeof skillsProfile.$inferSelect;
+export type NewSkillsProfileRow = typeof skillsProfile.$inferInsert;
+
+// Skills DNA history: one row per monthly snapshot, used for "Évolution dans le temps".
+export interface SkillsCategoryAverages {
+  DATA_ENGINEERING: number;
+  BI_ANALYTICS: number;
+  TECHNICAL: number;
+  CLOUD: number;
+  SOFT: number;
+  DOMAIN: number;
+}
+
+export const skillsHistory = pgTable(
+  "skills_history",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    snapshotAt: timestamp("snapshot_at").notNull().defaultNow(),
+    skills: jsonb("skills").$type<ExtractedSkill[]>().default([]),
+    categoryAverages: jsonb("category_averages").$type<SkillsCategoryAverages>(),
+  },
+  (t) => ({
+    userSnapshotIdx: index("skills_history_user_snapshot_idx").on(t.userId, t.snapshotAt),
+  }),
+);
+
+export type SkillsHistoryRow = typeof skillsHistory.$inferSelect;
+export type NewSkillsHistoryRow = typeof skillsHistory.$inferInsert;

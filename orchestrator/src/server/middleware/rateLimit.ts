@@ -1,7 +1,7 @@
 import rateLimit from "express-rate-limit";
 import RedisStore from "rate-limit-redis";
 import { createClient } from "redis";
-import { logger } from "../../infra/logger";
+import { logger } from "../infra/logger";
 
 /**
  * Rate limiter for login attempts to prevent brute force.
@@ -16,13 +16,12 @@ export async function createLoginLimiter() {
 
     return rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5, // Limit each IP to 5 login attempts per windowMs
-      standardHeaders: true,
+      limit: 5, // Limit each IP to 5 login attempts per windowMs
+      standardHeaders: "draft-7",
       legacyHeaders: false,
       store: new RedisStore({
-        // @ts-expect-error - Expected by rate-limit-redis
         sendCommand: (...args: string[]) => client.sendCommand(args),
-      }),
+      }) as any,
       message: {
         ok: false,
         error: {
@@ -31,16 +30,22 @@ export async function createLoginLimiter() {
         },
       },
       handler: (req, res, next, options) => {
-        logger.warn({ ip: req.ip, route: req.path }, "Rate limit exceeded for login");
+        logger.warn("Rate limit exceeded for login", {
+          ip: req.ip,
+          route: req.path,
+        });
         res.status(429).json(options.message);
       },
     });
   } catch (error) {
-    logger.error({ error }, "Failed to connect to Redis for rate limiting, falling back to in-memory store");
+    logger.error(
+      "Failed to connect to Redis for rate limiting, falling back to in-memory store",
+      { error },
+    );
     // Fallback to in-memory if Redis is down
     return rateLimit({
       windowMs: 15 * 60 * 1000,
-      max: 10, // Slightly more relaxed for in-memory
+      limit: 10, // Slightly more relaxed for in-memory
       message: {
         ok: false,
         error: {

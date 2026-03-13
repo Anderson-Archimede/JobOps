@@ -1,12 +1,26 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../auth/jwt";
-import { logger } from "../../infra/logger";
+import { logger } from "../infra/logger";
 
 /**
  * Middleware to authenticate requests using JWT RS256.
  * Expects "Authorization: Bearer <token>" header.
  */
-export async function authenticateJWT(req: Request, res: Response, next: NextFunction) {
+export interface AuthenticatedUserPayload {
+  userId: string;
+  email: string;
+  role?: string;
+}
+
+export interface AuthenticatedRequest extends Request {
+  user?: AuthenticatedUserPayload;
+}
+
+export async function authenticateJWT(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -32,7 +46,7 @@ export async function authenticateJWT(req: Request, res: Response, next: NextFun
     });
   }
 
-  const payload = verifyAccessToken(token);
+  const payload = verifyAccessToken(token) as AuthenticatedUserPayload | null;
   if (!payload) {
     return res.status(401).json({
       ok: false,
@@ -44,8 +58,12 @@ export async function authenticateJWT(req: Request, res: Response, next: NextFun
     });
   }
 
-  // Attach user to request
-  (req as any).user = payload;
+  // Attach user to request with a well-typed payload
+  (req as AuthenticatedRequest).user = {
+    userId: payload.userId,
+    email: payload.email,
+    role: payload.role,
+  };
   
   next();
 }

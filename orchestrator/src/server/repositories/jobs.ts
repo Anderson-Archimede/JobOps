@@ -167,7 +167,7 @@ export async function getAllJobUrls(): Promise<string[]> {
   return rows.map((r) => r.jobUrl);
 }
 
-async function insertJob(input: CreateJobInput): Promise<Job> {
+async function insertJob(input: CreateJobInput, userId: string): Promise<Job> {
   const id = randomUUID();
   const now = new Date();
 
@@ -213,6 +213,7 @@ async function insertJob(input: CreateJobInput): Promise<Job> {
     companyReviewsCount: input.companyReviewsCount ?? null,
     vacancyCount: input.vacancyCount ?? null,
     workFromHomeType: input.workFromHomeType ?? null,
+    userId,
     status: "discovered",
     discoveredAt: now,
     createdAt: now,
@@ -231,9 +232,12 @@ function isJobUrlUniqueViolation(error: unknown): boolean {
   return /UNIQUE constraint failed: jobs\.job_url/i.test(error.message);
 }
 
-async function tryInsertJob(input: CreateJobInput): Promise<Job | null> {
+async function tryInsertJob(
+  input: CreateJobInput,
+  userId: string,
+): Promise<Job | null> {
   try {
-    return await insertJob(input);
+    return await insertJob(input, userId);
   } catch (error) {
     if (isJobUrlUniqueViolation(error)) return null;
     throw error;
@@ -243,15 +247,20 @@ async function tryInsertJob(input: CreateJobInput): Promise<Job | null> {
 /**
  * Create jobs (or return existing jobs for duplicate URLs).
  */
-export async function createJobs(input: CreateJobInput): Promise<Job>;
+export async function createJobs(
+  input: CreateJobInput,
+  userId: string,
+): Promise<Job>;
 export async function createJobs(
   inputs: CreateJobInput[],
+  userId: string,
 ): Promise<{ created: number; skipped: number }>;
 export async function createJobs(
   inputOrInputs: CreateJobInput | CreateJobInput[],
+  userId: string,
 ): Promise<Job | { created: number; skipped: number }> {
   if (!Array.isArray(inputOrInputs)) {
-    const inserted = await tryInsertJob(inputOrInputs);
+    const inserted = await tryInsertJob(inputOrInputs, userId);
     if (inserted) return inserted;
     const existing = await getJobByUrl(inputOrInputs.jobUrl);
     if (existing) return existing;
@@ -295,7 +304,7 @@ export async function createJobs(
       continue;
     }
 
-    const inserted = await tryInsertJob(input);
+    const inserted = await tryInsertJob(input, userId);
     if (!inserted) {
       skipped += count;
       continue;
@@ -311,8 +320,11 @@ export async function createJobs(
 /**
  * Create a single job (or return existing if URL matches).
  */
-export async function createJob(input: CreateJobInput): Promise<Job> {
-  return createJobs(input);
+export async function createJob(
+  input: CreateJobInput,
+  userId: string,
+): Promise<Job> {
+  return createJobs(input, userId);
 }
 
 /**
