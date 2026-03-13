@@ -344,7 +344,7 @@ export const OrchestratorPage: React.FC = () => {
       />
 
       <main
-        className={`container mx-auto max-w-7xl space-y-6 px-4 py-6 ${
+        className={`container mx-auto max-w-7xl space-y-5 px-4 py-5 ${
           selectedJobIds.size > 0 ? "pb-36 lg:pb-12" : "pb-12"
         }`}
       >

@@ -392,12 +392,15 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
 
   if (!selectedJob) {
     return (
-      <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-1 text-center">
-        <div className="text-sm font-medium text-muted-foreground">
-          No job selected
+      <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted/20">
+          <FileText className="h-7 w-7 text-muted-foreground/40" />
         </div>
-        <p className="text-xs text-muted-foreground/70">
-          Select a job to view details
+        <div className="text-sm font-medium text-muted-foreground">
+          Aucune offre sélectionnée
+        </div>
+        <p className="text-xs text-muted-foreground/60">
+          Cliquez sur une offre pour voir les détails
         </p>
       </div>
     );
@@ -427,6 +430,51 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
         }}
       />
 
+      {/* Seeker Quick Actions */}
+      <div className="flex flex-wrap gap-2 rounded-xl border border-border/40 bg-gradient-to-r from-blue-500/5 to-violet-500/5 p-3">
+        <Button
+          asChild
+          size="sm"
+          className="h-9 gap-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 text-xs font-medium"
+        >
+          <a href={selectedJobLink} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-3.5 w-3.5" />
+            Postuler
+          </a>
+        </Button>
+        {canApply && (
+          <Button
+            size="sm"
+            onClick={handleApply}
+            className="h-9 gap-2 bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30 text-xs"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            J&apos;ai postulé
+          </Button>
+        )}
+        {canMoveToInProgress && (
+          <Button
+            size="sm"
+            onClick={handleMoveToInProgress}
+            className="h-9 gap-2 bg-cyan-600/20 text-cyan-300 hover:bg-cyan-600/30 border border-cyan-500/30 text-xs"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            En cours
+          </Button>
+        )}
+        {canSkip && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void handleSkip()}
+            className="h-9 gap-2 text-xs text-muted-foreground hover:text-red-400"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            Passer
+          </Button>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center gap-1.5">
         <Button
           asChild
@@ -436,7 +484,7 @@ export const JobDetailPanel: React.FC<JobDetailPanelProps> = ({
         >
           <a href={selectedJobLink} target="_blank" rel="noopener noreferrer">
             <ExternalLink className="h-3.5 w-3.5" />
-            View
+            Voir l&apos;offre
           </a>
         </Button>
 

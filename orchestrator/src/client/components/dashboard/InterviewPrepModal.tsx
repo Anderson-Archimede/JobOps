@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,7 @@ export const InterviewPrepModal: React.FC<InterviewPrepModalProps> = ({
   open,
   onOpenChange,
 }) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2>(1);
   const [applications, setApplications] = useState<ApplicationWithInterview[]>([]);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
@@ -154,7 +156,11 @@ export const InterviewPrepModal: React.FC<InterviewPrepModalProps> = ({
       }
 
       const data = await response.json();
-      setPrepResult(data.data);
+      const result = data.data as PrepareResponse;
+      setPrepResult(result);
+
+      onOpenChange(false);
+      navigate(`/interview-coach?sessionId=${result.sessionId}`);
     } catch (err) {
       clearInterval(interval);
       setError(err instanceof Error ? err.message : "Une erreur est survenue");

@@ -36,6 +36,7 @@ import { TracerLinksPage } from "./pages/TracerLinksPage";
 import { TrackingInboxPage } from "./pages/TrackingInboxPage";
 import { VisaSponsorsPage } from "./pages/VisaSponsorsPage";
 import { SkillsDNAPage } from "./pages/SkillsDNAPage";
+import { InterviewCoachPage } from "./pages/InterviewCoachPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
@@ -196,6 +197,7 @@ function AppContent() {
                     path="/oauth/gmail/callback"
                     element={<ProtectedRoute><GmailOauthCallbackPage /></ProtectedRoute>}
                   />
+                  <Route path="/interview-coach" element={<ProtectedRoute><InterviewCoachPage /></ProtectedRoute>} />
                   <Route path="/job/:id" element={<ProtectedRoute><JobPage /></ProtectedRoute>} />
                   <Route path="/tracer-links" element={<ProtectedRoute><TracerLinksPage /></ProtectedRoute>} />
                   <Route path="/visa-sponsors" element={<ProtectedRoute><VisaSponsorsPage /></ProtectedRoute>} />

@@ -135,8 +135,8 @@ export const tabs: Array<{
 ];
 
 export const emptyStateCopy: Record<FilterTab, string> = {
-  ready: "Run the pipeline to discover and process new jobs.",
-  discovered: "All discovered jobs have been processed.",
-  applied: "You have not applied to any jobs yet.",
-  all: "No jobs in the system yet. Run the pipeline to get started.",
+  ready: "Lancez un scraping ou le pipeline pour découvrir de nouvelles offres.",
+  discovered: "Toutes les offres découvertes ont été traitées.",
+  applied: "Vous n'avez pas encore postulé. Sélectionnez des offres pour commencer.",
+  all: "Aucune offre dans le système. Lancez un scraping depuis le Dashboard pour commencer.",
 };

@@ -32,3 +32,9 @@ services:
       - key: NODE_ENV
         value: "production"
 
+      # LLM API (OpenRouter) for interview prep, Skills DNA, etc. (set in Dashboard)
+      - key: LLM_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+

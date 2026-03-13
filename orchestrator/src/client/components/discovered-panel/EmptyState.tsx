@@ -1,17 +1,17 @@
-import { Sparkles } from "lucide-react";
+import { Briefcase } from "lucide-react";
 import type React from "react";
 
 export const EmptyState: React.FC = () => {
   return (
-    <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2 text-center px-4">
-      <div className="h-10 w-10 rounded-full border border-border/40 bg-muted/20 flex items-center justify-center">
-        <Sparkles className="h-4 w-4 text-muted-foreground/50" />
+    <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-3 text-center px-4">
+      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/10 to-violet-500/10 border border-blue-500/20">
+        <Briefcase className="h-6 w-6 text-blue-400/60" />
       </div>
       <div className="text-sm font-medium text-muted-foreground">
-        No job selected
+        Aucune offre sélectionnée
       </div>
-      <p className="text-xs text-muted-foreground/70 max-w-[200px]">
-        Select a job from the list to see details and decide whether to tailor.
+      <p className="text-xs text-muted-foreground/60 max-w-[220px]">
+        Cliquez sur une offre pour voir les détails, le score de correspondance et les options de candidature.
       </p>
     </div>
   );

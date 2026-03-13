@@ -249,11 +249,17 @@ Génère exactement ${config.count} questions variées et pertinentes pour ce po
 Les questions doivent être en français et adaptées au contexte professionnel français.`;
 
     const overrideModel = await getSetting("model");
-    const model =
+    const primaryModel =
       overrideModel ||
       process.env.MODEL ||
       process.env.LLM_MODEL ||
       "google/gemini-2.5-flash";
+
+    const fallbackModels = [
+      primaryModel,
+      "google/gemini-2.0-flash-001",
+      "meta-llama/llama-3.3-70b-instruct",
+    ];
 
     const llmService = new LlmService();
 
@@ -268,8 +274,8 @@ Les questions doivent être en français et adaptées au contexte professionnel 
               type: "object",
               properties: {
                 question: { type: "string" },
-                type: { type: "string", enum: ["behavioral", "technical", "motivational", "situational"] },
-                difficulty: { type: "number", enum: [1, 2, 3] },
+                type: { type: "string" },
+                difficulty: { type: "number" },
                 expectedKeywords: { type: "array", items: { type: "string" } },
                 starRequired: { type: "boolean" },
                 tipForCandidate: { type: "string" },
@@ -283,18 +289,26 @@ Les questions doivent être en français et adaptées au contexte professionnel 
       },
     };
 
-    const response = await llmService.callJson<{ questions: InterviewQuestion[] }>({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      jsonSchema: questionsSchema,
-      maxRetries: 2,
-    });
+    let response: import("../../services/llm/types").LlmResponse<{ questions: InterviewQuestion[] }> = { success: false, error: "No models tried" };
+
+    for (const model of fallbackModels) {
+      console.log(`[seeker-interview] Trying model: ${model}`);
+      response = await llmService.callJson<{ questions: InterviewQuestion[] }>({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        jsonSchema: questionsSchema,
+        maxRetries: 1,
+      });
+
+      if (response.success) break;
+      console.warn(`[seeker-interview] Model ${model} failed:`, response.error);
+    }
 
     if (!response.success) {
-      console.error("[seeker-interview] LLM error:", response.error);
+      console.error("[seeker-interview] All LLM models failed:", response.error);
       const userMessage =
         response.error === "LLM API key not configured"
           ? "Clé API LLM non configurée. Configurez LLM_API_KEY (ou OPENROUTER_API_KEY) dans les paramètres."
