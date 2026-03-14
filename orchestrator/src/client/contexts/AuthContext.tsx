@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authEnabled, setAuthEnabled] = useState(true);
+  const [authEnabled, setAuthEnabled] = useState(false);
 
   const updateAccessToken = useCallback((token: string | null) => {
     setAccessToken(token);
@@ -134,50 +134,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const initAuth = async () => {
-      setIsLoading(true);
-
-      // Build-time override: when VITE_AUTH_ENABLED=false, skip login
       if (import.meta.env.VITE_AUTH_ENABLED === "false") {
+        if (!cancelled) {
+          setAuthEnabled(false);
+          setUser(guestUser);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      let serverWantsAuth = false;
+      try {
+        const healthRes = await fetch("/api/health", { signal: AbortSignal.timeout(4000) });
+        const healthData = await healthRes.json().catch(() => ({}));
+        serverWantsAuth = healthData.authEnabled === true;
+      } catch {
+        serverWantsAuth = false;
+      }
+
+      if (cancelled) return;
+
+      if (!serverWantsAuth) {
         setAuthEnabled(false);
         setUser(guestUser);
         setIsLoading(false);
         return;
       }
 
-      try {
-        const healthRes = await fetch("/api/health", { signal: AbortSignal.timeout(5000) });
-        const healthData = await healthRes.json().catch(() => ({}));
-        if (healthData.authEnabled === false) {
-          setAuthEnabled(false);
-          setUser(guestUser);
-          setIsLoading(false);
-          return;
-        }
-        if (healthData.authEnabled === true) {
-          setAuthEnabled(true);
-        } else {
-          setAuthEnabled(false);
-          setUser(guestUser);
-          setIsLoading(false);
-          return;
-        }
-      } catch {
-        setAuthEnabled(false);
-        setUser(guestUser);
-        setIsLoading(false);
-        return;
-      }
+      setAuthEnabled(true);
       const savedToken = localStorage.getItem("accessToken");
       if (savedToken) {
         updateAccessToken(savedToken);
       }
       await refreshToken();
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     };
 
     initAuth();
-  }, [refreshToken, updateAccessToken]);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const value: AuthContextType = {
     user,

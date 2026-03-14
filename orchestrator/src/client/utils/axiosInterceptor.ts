@@ -74,10 +74,6 @@ export function setupAxiosInterceptors() {
             response = await originalFetch(input, { ...init, headers });
           } else {
             isRefreshing = false;
-            // Only redirect if not already on login page
-            if (!window.location.pathname.startsWith("/login")) {
-              window.location.href = "/login";
-            }
             return response;
           }
         } else {

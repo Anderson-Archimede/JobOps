@@ -18,8 +18,8 @@ $VercelScope = "archimed-andersons-projects"
 function Deploy-Render {
     Write-Host "`n=== Triggering Render deploy ===" -ForegroundColor Cyan
     $response = Invoke-WebRequest -Uri $RenderDeployUrl -Method POST -UseBasicParsing
-    if ($response.StatusCode -eq 200) {
-        Write-Host "Render deploy triggered successfully." -ForegroundColor Green
+    if ($response.StatusCode -in 200, 202) {
+        Write-Host "Render deploy triggered successfully (HTTP $($response.StatusCode))." -ForegroundColor Green
         Write-Host "Monitor: https://dashboard.render.com" -ForegroundColor Gray
     } else {
         throw "Render deploy failed: $($response.StatusCode)"

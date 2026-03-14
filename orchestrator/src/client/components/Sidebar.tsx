@@ -362,14 +362,21 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border p-4">
+      <div className="border-t border-border/50 p-3">
         {!isCollapsed ? (
-          <div className="text-xs text-muted-foreground">
-            <div className="font-medium">JobOps v0.1.31</div>
-            <div className="mt-1">PostgreSQL + BullMQ</div>
+          <div className="flex items-center gap-2 px-1">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-[#E94560]/20 to-[#E94560]/5">
+              <Activity className="h-3 w-3 text-[#E94560]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] font-medium text-muted-foreground/80 truncate">Workspace actif</div>
+            </div>
+            <span className="flex h-1.5 w-1.5 rounded-full bg-green-500" />
           </div>
         ) : (
-          <div className="text-center text-xs text-muted-foreground">v0.1.31</div>
+          <div className="flex justify-center">
+            <span className="flex h-1.5 w-1.5 rounded-full bg-green-500" />
+          </div>
         )}
       </div>
     </aside>

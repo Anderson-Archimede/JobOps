@@ -21,8 +21,9 @@ notificationsRouter.get("/count", async (req, res) => {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const userId = (req as AuthRequest).user?.userId;
     if (!userId) {
-      return res.status(401).json({
-        error: "Non authentifié",
+      return res.json({
+        count: 0,
+        breakdown: { newJobs: 0, interviews: 0, updates: 0 },
       });
     }
     
@@ -80,14 +81,65 @@ notificationsRouter.get("/count", async (req, res) => {
 
 /**
  * GET /api/notifications
- * Get full notifications list (placeholder for future implementation)
+ * Get full notifications list built from recent job activity
  */
 notificationsRouter.get("/", async (req, res) => {
   try {
-    // TODO: Implement full notifications system
+    const userId = (req as AuthRequest).user?.userId;
+    if (!userId) {
+      return res.json({ notifications: [], totalCount: 0 });
+    }
+
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const recentJobs = await db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        employer: jobs.employer,
+        status: jobs.status,
+        updatedAt: jobs.updatedAt,
+      })
+      .from(jobs)
+      .where(
+        and(
+          eq(jobs.userId, userId),
+          gte(jobs.updatedAt, yesterday),
+        ),
+      )
+      .orderBy(sql`${jobs.updatedAt} desc`)
+      .limit(20);
+
+    const notifications = recentJobs.map((job) => {
+      let type: "new_job" | "interview" | "update" | "system" = "update";
+      let title = "Mise à jour";
+      let message = `${job.title} chez ${job.employer || "Entreprise"}`;
+
+      if (job.status === "ready") {
+        type = "new_job";
+        title = "Nouveau job prêt";
+      } else if (job.status === "in_progress") {
+        type = "interview";
+        title = "Candidature en cours";
+      } else if (job.status === "applied") {
+        type = "update";
+        title = "Candidature envoyée";
+      }
+
+      return {
+        id: `job-${job.id}`,
+        type,
+        title,
+        message,
+        read: false,
+        createdAt: job.updatedAt?.toISOString() || new Date().toISOString(),
+        url: `/job/${job.id}`,
+      };
+    });
+
     return res.json({
-      notifications: [],
-      totalCount: 0,
+      notifications,
+      totalCount: notifications.length,
     });
   } catch (error) {
     console.error("Notifications error:", error);

@@ -15,6 +15,11 @@ import {
   Briefcase,
   Loader2,
   X,
+  CheckCheck,
+  Sparkles,
+  CalendarClock,
+  RefreshCw,
+  Info,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -46,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
   // Hooks
   const { query, setQuery, results, isLoading, categories, clearSearch } = useSearch();
   const { status, healthCheck } = useSystemStatus();
-  const { count: notificationCount } = useNotifications();
+  const { count: notificationCount, notifications, breakdown, markAsRead, markAllAsRead, refresh: refreshNotifs } = useNotifications();
   const { user, isAuthenticated, logout } = useAuth();
   
   // State
@@ -257,28 +262,94 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
       {/* RIGHT ZONE */}
       <div className="flex items-center gap-1">
         {/* Notifications */}
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                onClick={() => navigate('/notifications')}
-              >
-                <Bell className="h-[18px] w-[18px]" />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            >
+              <Bell className="h-[18px] w-[18px]" />
+              {notificationCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#E94560] text-[9px] font-bold text-white ring-2 ring-background">
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 p-0">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span className="text-sm font-semibold">Notifications</span>
+              <div className="flex items-center gap-1">
                 {notificationCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#E94560] text-[9px] font-bold text-white ring-2 ring-background">
-                    {notificationCount > 9 ? '9+' : notificationCount}
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground px-2" onClick={markAllAsRead}>
+                    <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                    Tout lire
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={refreshNotifs}>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Summary badges */}
+            {notificationCount > 0 && (
+              <div className="flex gap-2 px-4 py-2 border-b border-border/50 bg-muted/30">
+                {breakdown.newJobs > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    <Sparkles className="h-3 w-3" /> {breakdown.newJobs} nouveau{breakdown.newJobs > 1 ? 'x' : ''} job{breakdown.newJobs > 1 ? 's' : ''}
                   </span>
                 )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs">
-              Notifications
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+                {breakdown.interviews > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                    <CalendarClock className="h-3 w-3" /> {breakdown.interviews} entretien{breakdown.interviews > 1 ? 's' : ''}
+                  </span>
+                )}
+                {breakdown.updates > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                    <Info className="h-3 w-3" /> {breakdown.updates} mise{breakdown.updates > 1 ? 's' : ''} à jour
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="max-h-72 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <Bell className="h-8 w-8 mb-2 opacity-30" />
+                  <p className="text-sm">Aucune notification</p>
+                  <p className="text-xs mt-1">Vous êtes à jour</p>
+                </div>
+              ) : (
+                notifications.map((notif) => (
+                  <button
+                    key={notif.id}
+                    onClick={() => {
+                      markAsRead(notif.id);
+                      if (notif.url) navigate(notif.url);
+                    }}
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm hover:bg-accent/50 transition-colors border-b border-border/30 last:border-0 ${!notif.read ? 'bg-muted/20' : ''}`}
+                  >
+                    <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${!notif.read ? 'bg-[#E94560]' : 'bg-transparent'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-xs truncate">{notif.title}</div>
+                      <div className="text-xs text-muted-foreground truncate mt-0.5">{notif.message}</div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            {notificationCount > 0 && (
+              <div className="border-t border-border px-4 py-2">
+                <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground hover:text-foreground" onClick={() => navigate('/jobs/ready')}>
+                  Voir tous les jobs
+                </Button>
+              </div>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="w-px h-5 bg-border/40 mx-1.5" />
 
@@ -296,17 +367,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar }) => {
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel className="text-xs text-muted-foreground">Actions rapides</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/orchestrator')} className="text-sm">
+            <DropdownMenuItem onClick={() => navigate('/dashboard?action=scraping')} className="text-sm">
               <Play className="mr-2 h-3.5 w-3.5" />
               Lancer scraping
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/applications/in-progress')} className="text-sm">
               <Briefcase className="mr-2 h-3.5 w-3.5" />
-              Nouvelle application
+              Mes candidatures
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/cv-manager')} className="text-sm">
               <FileUp className="mr-2 h-3.5 w-3.5" />
-              Importer CV
+              Gérer mes CV
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

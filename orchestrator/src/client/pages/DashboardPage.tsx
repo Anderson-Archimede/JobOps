@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp,
@@ -167,6 +167,7 @@ const SkeletonChart = () => (
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
   // State
@@ -182,6 +183,13 @@ export const DashboardPage: React.FC = () => {
   const [seekerActivity, setSeekerActivity] = useState<SeekerActivityItem[]>([]);
   const [insightOfDay, setInsightOfDay] = useState<string>('');
   const [scrapingOpen, setScrapingOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'scraping') {
+      setScrapingOpen(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [interviewOpen, setInterviewOpen] = useState(false);
   const [newJobsCount, setNewJobsCount] = useState<number>(0);
   const [refreshJobsCount, setRefreshJobsCount] = useState(0);
@@ -644,7 +652,7 @@ export const DashboardPage: React.FC = () => {
                         style={{
                           stroke: "#6366f1",
                           strokeDasharray: "97",
-                          strokeDashoffset: `${97 - ((seekerKpis?.avgPSOScore || 0) / 100) * 97}`,
+                          strokeDashoffset: `${97 - ((seekerKpis?.avgPSOScore?.value || 0) / 100) * 97}`,
                           transition: "stroke-dashoffset 0.8s ease-out",
                         }}
                         d="M18 2.5 a 15.5 15.5 0 0 1 0 31 a 15.5 15.5 0 0 1 0 -31"
