@@ -267,7 +267,7 @@ Then open:
 
 #### ☁️ Déploiement
 
-- **Vercel** : `installCommand: "cd .. && npm ci"` pour monorepo ; routes `/api` et `/pdfs` proxy vers Render. Pour **désactiver le login** sur le front (mode invité) : ajouter la variable d’environnement `VITE_AUTH_ENABLED=false` dans les paramètres du projet Vercel (Build & Deployment → Environment Variables), puis redéployer.
+- **Vercel** : `installCommand: "cd .. && npm ci"` pour monorepo ; `rewrites` dans vercel.json proxient `/api` et `/pdfs` vers Render. Pour **désactiver le login** sur le front (mode invité) : ajouter la variable d’environnement `VITE_AUTH_ENABLED=false` dans les paramètres du projet Vercel (Build & Deployment → Environment Variables), puis redéployer.
 - **Render** : Variables `LLM_API_KEY` et `OPENROUTER_API_KEY` (optionnelles) dans `render.yaml`
 - **Script** : `scripts/deploy.ps1` (Render, Vercel ou les deux) ; deploy hook Render pour déclencher un déploiement
 

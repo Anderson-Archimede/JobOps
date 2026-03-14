@@ -9,21 +9,18 @@
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "https://jobops.onrender.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://jobops.onrender.com/api/:path*"
     },
     {
-      "src": "/pdfs/(.*)",
-      "dest": "https://jobops.onrender.com/pdfs/$1"
+      "source": "/pdfs/:path*",
+      "destination": "https://jobops.onrender.com/pdfs/:path*"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api)(?!pdfs)(?!assets)(?!favicon)(?!_next).*)",
+      "destination": "/index.html"
     }
   ]
 }
