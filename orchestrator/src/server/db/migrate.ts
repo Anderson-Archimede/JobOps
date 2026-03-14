@@ -25,7 +25,6 @@ const db = drizzle(sql, { schema });
 try {
   await migrate(db, { migrationsFolder: "./src/server/db/migrations" });
   console.log("🎉 Database migrations complete!");
-  process.exit(0);
 } catch (error) {
   console.error("❌ Migration failed:", error);
   process.exit(1);
