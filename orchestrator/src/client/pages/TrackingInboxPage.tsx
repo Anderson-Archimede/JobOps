@@ -787,20 +787,20 @@ export const TrackingInboxPage: React.FC = () => {
                 <span className={cn("h-1.5 w-1.5 rounded-full", isConnected ? "bg-emerald-400" : "bg-muted-foreground")} />
                 {isConnected ? "Connecté" : "Déconnecté"}
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void refresh()}
-                disabled={isRefreshing || isLoading}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void refresh()}
+            disabled={isRefreshing || isLoading}
                 className="gap-1.5 h-8 text-xs"
-              >
-                {isRefreshing ? (
+          >
+            {isRefreshing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
+            ) : (
                   <RefreshCcw className="h-3.5 w-3.5" />
-                )}
+            )}
                 Rafraîchir
-              </Button>
+          </Button>
             </div>
           </div>
 
@@ -1025,10 +1025,10 @@ export const TrackingInboxPage: React.FC = () => {
           {/* ─── TIMELINE TAB ─── */}
           {activeTab === "timeline" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold">Historique des synchronisations</h2>
                 <span className="text-xs text-muted-foreground">{runs.length} synchro{runs.length !== 1 ? "s" : ""}</span>
-              </div>
+          </div>
 
               {runs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -1152,7 +1152,7 @@ export const TrackingInboxPage: React.FC = () => {
               {/* Pipeline funnel */}
               <div className="rounded-xl border border-border/50 bg-card/40 p-5 space-y-4">
                 <h3 className="text-sm font-semibold">Entonnoir de traitement</h3>
-                <div className="space-y-2">
+              <div className="space-y-2">
                   {[
                     { label: "Découverts", value: analytics.totalDiscovered, color: "bg-blue-500" },
                     { label: "Pertinents", value: analytics.totalRelevant, color: "bg-indigo-500" },
@@ -1188,106 +1188,106 @@ export const TrackingInboxPage: React.FC = () => {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="provider" className="text-xs">Fournisseur</Label>
-                    <Select
-                      value={provider}
-                      onValueChange={(value) =>
-                        setProvider(value as PostApplicationProvider)
-                      }
-                    >
+                <Select
+                  value={provider}
+                  onValueChange={(value) =>
+                    setProvider(value as PostApplicationProvider)
+                  }
+                >
                       <SelectTrigger id="provider" className="h-9">
-                        <SelectValue placeholder="Provider" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PROVIDER_OPTIONS.map((option) => (
-                          <SelectItem key={option} value={option}>
+                    <SelectValue placeholder="Provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROVIDER_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
                             {option === "gmail" ? "Gmail (OAuth)" : option.toUpperCase()}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  <div className="space-y-2">
+              <div className="space-y-2">
                     <Label htmlFor="accountKey" className="text-xs">Clé de compte</Label>
-                    <Input
-                      id="accountKey"
-                      value={accountKey}
-                      onChange={(event) => setAccountKey(event.target.value)}
+                <Input
+                  id="accountKey"
+                  value={accountKey}
+                  onChange={(event) => setAccountKey(event.target.value)}
                       className="h-9"
-                    />
-                  </div>
-                </div>
+                />
+              </div>
+            </div>
 
                 <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
                   Gmail utilise OAuth pour accéder à vos emails en lecture seule. Les identifiants sont stockés côté serveur. Aucune saisie manuelle de token nécessaire.
                 </p>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
+              <div className="space-y-2">
                     <Label htmlFor="maxMessages" className="text-xs">Messages max</Label>
-                    <Input
-                      id="maxMessages"
-                      inputMode="numeric"
-                      value={maxMessages}
-                      onChange={(event) => setMaxMessages(event.target.value)}
+                <Input
+                  id="maxMessages"
+                  inputMode="numeric"
+                  value={maxMessages}
+                  onChange={(event) => setMaxMessages(event.target.value)}
                       className="h-9"
-                    />
+                />
                     <p className="text-[10px] text-muted-foreground/40">1 à 500 messages par synchro</p>
-                  </div>
-                  <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                     <Label htmlFor="searchDays" className="text-xs">Jours de recherche</Label>
-                    <Input
-                      id="searchDays"
-                      inputMode="numeric"
-                      value={searchDays}
-                      onChange={(event) => setSearchDays(event.target.value)}
+                <Input
+                  id="searchDays"
+                  inputMode="numeric"
+                  value={searchDays}
+                  onChange={(event) => setSearchDays(event.target.value)}
                       className="h-9"
-                    />
+                />
                     <p className="text-[10px] text-muted-foreground/40">1 à 365 jours en arrière</p>
-                  </div>
+              </div>
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex items-center gap-3 pt-2 border-t border-border/30">
-                  {!isConnected ? (
-                    <Button
-                      onClick={() => void runProviderAction("connect")}
-                      disabled={isActionLoading}
+                {!isConnected ? (
+                  <Button
+                    onClick={() => void runProviderAction("connect")}
+                    disabled={isActionLoading}
                       className="gap-2 bg-gradient-to-r from-[#E94560] to-[#D63B54] hover:from-[#D63B54] hover:to-[#C43048] text-white"
-                    >
+                  >
                       {activeAction === "connect" ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Link2 className="h-4 w-4" />
+                    <Link2 className="h-4 w-4" />
                       )}
                       Connecter Gmail
-                    </Button>
+                  </Button>
                   ) : (
                     <>
-                      <Button
-                        onClick={() => void runProviderAction("sync")}
-                        disabled={isActionLoading || !isConnected}
-                        className="gap-2"
-                      >
-                        {activeAction === "sync" ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
+                <Button
+                  onClick={() => void runProviderAction("sync")}
+                  disabled={isActionLoading || !isConnected}
+                  className="gap-2"
+                >
+                  {activeAction === "sync" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
                         {activeAction === "sync" ? "Synchronisation..." : "Synchroniser"}
-                      </Button>
-                      <Button
-                        onClick={() => void runProviderAction("disconnect")}
-                        disabled={isActionLoading}
-                        variant="outline"
+                </Button>
+                  <Button
+                    onClick={() => void runProviderAction("disconnect")}
+                    disabled={isActionLoading}
+                    variant="outline"
                         className="gap-2 border-red-500/30 text-red-400 hover:bg-red-500/10"
-                      >
-                        <Unplug className="h-4 w-4" />
+                  >
+                    <Unplug className="h-4 w-4" />
                         Déconnecter
-                      </Button>
+                  </Button>
                     </>
                   )}
-                </div>
+            </div>
 
                 {/* Connection details */}
                 {status?.integration && (
@@ -1297,27 +1297,27 @@ export const TrackingInboxPage: React.FC = () => {
                       <div>
                         <span className="text-muted-foreground/60">Statut :</span>{" "}
                         <span className={cn("font-medium", status.integration.status === "connected" ? "text-emerald-400" : status.integration.status === "error" ? "text-red-400" : "text-muted-foreground")}>{status.integration.status}</span>
-                      </div>
+            </div>
                       <div>
                         <span className="text-muted-foreground/60">Dernière synchro :</span>{" "}
                         <span className="font-medium">{formatEpochMs(status.integration.lastSyncedAt)}</span>
-                      </div>
+              </div>
                       <div>
                         <span className="text-muted-foreground/60">Connecté le :</span>{" "}
                         <span className="font-medium">{formatEpochMs(status.integration.lastConnectedAt)}</span>
-                      </div>
+              </div>
                       {status.integration.lastError && (
                         <div className="col-span-2">
                           <span className="text-muted-foreground/60">Dernière erreur :</span>{" "}
                           <span className="text-red-400 text-[10px]">{status.integration.lastError}</span>
                         </div>
                       )}
-                    </div>
-                  </div>
+                      </div>
+                      </div>
                 )}
+                    </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
 

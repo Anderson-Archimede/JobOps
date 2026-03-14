@@ -1,11 +1,11 @@
 /**
  * Main Sidebar Component
- * 
- * Architecture: 4 groups with 13 tabs total
+ *
+ * Architecture: 4 groups with 15 tabs total
  * - CORE: Dashboard, Job Search, Applications, Inbox Tracker
- * - INTELLIGENCE: Agents, Prompt Studio, AI Insights
- * - DATA: Datasets, CV Manager, Integrations
- * - OPS: Monitoring, Logs, Settings
+ * - INTELLIGENCE: Agents, Prompt Studio, AI Insights, Skills DNA
+ * - DATA: Datasets, CV Manager, Visa Sponsors, Integrations
+ * - OPS: Monitoring, Logs, Tracer Links, Settings
  */
 
 import React, { useState, useEffect } from 'react';
@@ -29,6 +29,8 @@ import {
   PanelLeftClose,
   PanelLeft,
   Target,
+  Shield,
+  Link2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -137,6 +139,12 @@ const NAV_GROUPS: NavGroup[] = [
         path: '/cv-manager',
       },
       {
+        id: 'visa-sponsors',
+        label: 'Visa Sponsors',
+        icon: Shield,
+        path: '/visa-sponsors',
+      },
+      {
         id: 'integrations',
         label: 'Integrations',
         icon: Plug,
@@ -159,6 +167,12 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Logs',
         icon: ScrollText,
         path: '/logs',
+      },
+      {
+        id: 'tracer-links',
+        label: 'Tracer Links',
+        icon: Link2,
+        path: '/tracer-links',
       },
       {
         id: 'settings',

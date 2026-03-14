@@ -247,12 +247,12 @@ export function CVManagerPage() {
             <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 shadow-sm ring-1 ring-blue-500/30">
               <FileText className="h-6 w-6 text-blue-400" />
             </div>
-            <div>
+          <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">CV Manager</h1>
               <p className="text-xs text-muted-foreground">
                 Bibliothèque de CVs · Versioning · Extraction IA
-              </p>
-            </div>
+            </p>
+          </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -275,13 +275,13 @@ export function CVManagerPage() {
               Skills DNA
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={() => setShowUploadModal(true)}
+          <button
+            onClick={() => setShowUploadModal(true)}
               className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-blue-700"
-            >
+          >
               <Plus className="h-4 w-4" />
               Ajouter un CV
-            </button>
+          </button>
           </div>
         </div>
 
@@ -295,16 +295,16 @@ export function CVManagerPage() {
               { label: "Récents (7j)", value: stats.recentUploads, icon: Clock, color: "text-amber-400", bg: "bg-amber-500/15" },
             ].map((s) => (
               <div key={s.label} className="rounded-xl border border-border/60 bg-card/80 p-4 shadow-sm">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.bg}`}>
                     <s.icon className={`h-5 w-5 ${s.color}`} />
-                  </div>
-                  <div>
+                </div>
+                <div>
                     <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
                     <p className="text-xs text-muted-foreground">{s.label}</p>
-                  </div>
                 </div>
               </div>
+            </div>
             ))}
           </div>
         )}
@@ -322,23 +322,23 @@ export function CVManagerPage() {
                   Sélection multiple, activation du CV principal, export ZIP, restauration de versions
                   et extraction sécurisée vers Skills DNA à partir de PDF ou JSON RxResume.
                 </p>
-              </div>
+                </div>
               <div className="grid min-w-[220px] grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
                   <p className="text-lg font-bold text-blue-400">{filteredCVs.length}</p>
                   <p className="text-[11px] text-muted-foreground">Visibles</p>
-                </div>
+              </div>
                 <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
                   <p className="text-lg font-bold text-emerald-400">{extractionReadyCount}</p>
                   <p className="text-[11px] text-muted-foreground">Extractibles</p>
-                </div>
+            </div>
                 <div className="rounded-xl border border-border/60 bg-muted/20 px-3 py-3">
                   <p className="text-lg font-bold text-violet-400">{versionedCount}</p>
                   <p className="text-[11px] text-muted-foreground">Versionnés</p>
                 </div>
+                </div>
               </div>
             </div>
-          </div>
 
           <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
             <p className="mb-3 text-sm font-semibold text-foreground">Actions rapides</p>
@@ -373,7 +373,7 @@ export function CVManagerPage() {
               >
                 Lancer extraction IA
               </button>
-            </div>
+                </div>
             <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
               <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1">
                 {visibleActiveCount} CV actif
@@ -384,9 +384,9 @@ export function CVManagerPage() {
               <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-1">
                 Historique des versions
               </span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
         {/* ── Filters ── */}
         <div className="flex flex-wrap items-center gap-3">
@@ -410,14 +410,14 @@ export function CVManagerPage() {
             { value: activeFilter, setter: setActiveFilter as (v: string) => void, options: [{ v: "all", l: "Tous" }, { v: "active", l: "Actifs" }, { v: "inactive", l: "Inactifs" }] },
             { value: dateFilter, setter: setDateFilter as (v: string) => void, options: [{ v: "all", l: "Tout" }, { v: "7days", l: "7 jours" }, { v: "30days", l: "30 jours" }, { v: "90days", l: "90 jours" }] },
           ].map((f, i) => (
-            <select
+          <select
               key={i}
               value={f.value}
               onChange={(e) => f.setter(e.target.value)}
               className="rounded-lg border border-border/60 bg-card/80 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-blue-500/40"
             >
               {f.options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
-            </select>
+          </select>
           ))}
 
           {selectedCVs.size > 0 && (
@@ -445,17 +445,17 @@ export function CVManagerPage() {
         )}
 
         {/* ── Grid ── */}
-        {isLoading ? (
+      {isLoading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
               <div key={i} className="animate-pulse rounded-xl border border-border/40 bg-card/60 p-4">
                 <div className="mb-3 h-36 rounded-lg bg-muted/30" />
                 <div className="mb-2 h-4 w-3/4 rounded bg-muted/30" />
                 <div className="h-3 w-1/2 rounded bg-muted/30" />
-              </div>
-            ))}
-          </div>
-        ) : filteredCVs.length === 0 ? (
+            </div>
+          ))}
+        </div>
+      ) : filteredCVs.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/50 py-16 text-center">
             <FileText className="mb-4 h-14 w-14 text-muted-foreground/40" />
             <p className="text-sm font-medium text-muted-foreground">Aucun CV trouvé</p>
@@ -466,36 +466,36 @@ export function CVManagerPage() {
             >
               <Plus className="h-4 w-4" /> Ajouter un CV
             </button>
-          </div>
-        ) : (
+        </div>
+      ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredCVs.map((cv) => (
-              <CVCard
-                key={cv.id}
-                cv={cv}
-                isSelected={selectedCVs.has(cv.id)}
-                onSelect={() => toggleCVSelection(cv.id)}
-                onSetActive={() => handleSetActive(cv.id)}
-                onDuplicate={handleDuplicate}
-                onDelete={() => handleDelete(cv.id)}
-                onView={() => openDetailModal(cv)}
-              />
-            ))}
-          </div>
-        )}
+          {filteredCVs.map((cv) => (
+            <CVCard
+              key={cv.id}
+              cv={cv}
+              isSelected={selectedCVs.has(cv.id)}
+              onSelect={() => toggleCVSelection(cv.id)}
+              onSetActive={() => handleSetActive(cv.id)}
+              onDuplicate={handleDuplicate}
+              onDelete={() => handleDelete(cv.id)}
+              onView={() => openDetailModal(cv)}
+            />
+          ))}
+        </div>
+      )}
 
-        {showUploadModal && (
+      {showUploadModal && (
           <UploadModal onClose={() => setShowUploadModal(false)} onUpload={handleUpload} isUploading={isUploading} />
         )}
-        {showModal && selectedCV && (
-          <DetailModal
-            cv={selectedCV}
-            versions={versions}
+      {showModal && selectedCV && (
+        <DetailModal
+          cv={selectedCV}
+          versions={versions}
             onClose={() => { setShowModal(false); setSelectedCV(null); setVersions([]); }}
-            onDelete={() => handleDelete(selectedCV.id)}
-            onRestore={handleRestoreVersion}
-          />
-        )}
+          onDelete={() => handleDelete(selectedCV.id)}
+          onRestore={handleRestoreVersion}
+        />
+      )}
       </div>
     </div>
   );
@@ -566,7 +566,7 @@ function CVCard({ cv, isSelected, onSelect, onSetActive, onDuplicate, onDelete, 
             <div className="flex h-full flex-col items-center justify-center gap-2">
               <FileText className="h-10 w-10 text-blue-400/50" />
               <span className="text-xs text-slate-400">Aucun aperçu</span>
-            </div>
+      </div>
           </>
         )}
         <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6">
@@ -600,22 +600,22 @@ function CVCard({ cv, isSelected, onSelect, onSetActive, onDuplicate, onDelete, 
           {!cv.isActive ? (
             <button onClick={onSetActive} className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-400 transition-colors hover:bg-emerald-500/20">
               <Star className="h-3.5 w-3.5" /> Activer
-            </button>
+          </button>
           ) : (
             <span className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-400">
               <Check className="h-3.5 w-3.5" /> CV principal
             </span>
-          )}
+        )}
           <div className="ml-auto flex gap-1">
-            <button
+        <button
               onClick={() => { const n = prompt(`Dupliquer "${cv.name}" en :`, `${cv.name} (copie)`); if (n) onDuplicate(cv.id, n, cv.role || undefined); }}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground" title="Dupliquer"
-            >
+        >
               <Copy className="h-3.5 w-3.5" />
-            </button>
+        </button>
             <button onClick={onDelete} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400" title="Supprimer">
               <Trash2 className="h-3.5 w-3.5" />
-            </button>
+        </button>
           </div>
         </div>
       </div>
@@ -775,7 +775,7 @@ function DetailModal({ cv, versions, onClose, onDelete, onRestore }: DetailModal
               {cv.isActive && (
                 <span className="flex items-center gap-0.5 text-emerald-400">
                   <Star className="h-3 w-3 fill-emerald-500" /> Actif
-                </span>
+                  </span>
               )}
             </div>
           </div>
@@ -787,7 +787,7 @@ function DetailModal({ cv, versions, onClose, onDelete, onRestore }: DetailModal
         {/* Tabs */}
         <div className="flex gap-1 border-b border-border px-6">
           {(["preview", "versions"] as const).map((t) => (
-            <button
+          <button
               key={t}
               onClick={() => setTab(t)}
               className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
@@ -796,7 +796,7 @@ function DetailModal({ cv, versions, onClose, onDelete, onRestore }: DetailModal
             >
               {t === "preview" ? "Aperçu" : `Historique (${versions.length})`}
               {tab === t && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-t bg-blue-500" />}
-            </button>
+          </button>
           ))}
         </div>
 
@@ -823,7 +823,7 @@ function DetailModal({ cv, versions, onClose, onDelete, onRestore }: DetailModal
                   <div key={m.label} className="rounded-lg border border-border/50 bg-muted/15 p-3">
                     <p className="text-[11px] text-muted-foreground">{m.label}</p>
                     <p className="mt-0.5 text-sm font-medium text-foreground">{m.value}</p>
-                  </div>
+                </div>
                 ))}
               </div>
             </div>

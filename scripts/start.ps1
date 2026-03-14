@@ -154,16 +154,16 @@ if ($LASTEXITCODE -eq 0) {
 }
 Write-Host ""
 
-# Build client
-if (-not (Test-Path "orchestrator\dist\client")) {
-    Write-Host "🏗️  Building client bundle..." -ForegroundColor Cyan
-    npm --workspace orchestrator run build:client
+# Build client (always rebuild so UI changes like Settings page are served)
+Write-Host "🏗️  Building client bundle..." -ForegroundColor Cyan
+npm --workspace orchestrator run build:client
+if ($LASTEXITCODE -eq 0) {
     Write-Host "✅ Client built" -ForegroundColor Green
-    Write-Host ""
 } else {
-    Write-Host "ℹ️  Client bundle exists (skipping build)" -ForegroundColor Gray
-    Write-Host ""
+    Write-Host "❌ Client build failed. Fix errors above and run again." -ForegroundColor Red
+    exit 1
 }
+Write-Host ""
 
 # Run migrations
 Write-Host "🗄️  Running database migrations..." -ForegroundColor Cyan

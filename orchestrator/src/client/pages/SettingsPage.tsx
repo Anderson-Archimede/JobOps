@@ -1,5 +1,4 @@
 import * as api from "@client/api";
-import { PageHeader } from "@client/components/layout";
 import { useUpdateSettingsMutation } from "@client/hooks/queries/useSettingsMutation";
 import { useRxResumeConfigState } from "@client/hooks/useRxResumeConfigState";
 import { useTracerReadiness } from "@client/hooks/useTracerReadiness";
@@ -39,7 +38,17 @@ import type {
   RxResumeMode,
 } from "@shared/types.js";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Settings } from "lucide-react";
+import {
+  Database,
+  KeyRound,
+  Loader2,
+  Plug,
+  Save,
+  Settings,
+  ShieldAlert,
+  RotateCcw,
+  Sliders,
+} from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -52,7 +61,9 @@ import { toast } from "sonner";
 import { useQueryErrorToast } from "@/client/hooks/useQueryErrorToast";
 import { queryKeys } from "@/client/lib/queryKeys";
 import { Accordion } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DEFAULT_FORM_VALUES: UpdateSettingsInput = {
   model: "",
@@ -933,122 +944,229 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  if (isLoading && !settings) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-[#E94560]" />
+      </div>
+    );
+  }
+
   return (
     <FormProvider {...methods}>
-      <PageHeader
-        icon={Settings}
-        title="Settings"
-        subtitle="Configure runtime behavior for this app."
-      />
+      <div className="flex h-full flex-col">
+        {/* ── Header ── */}
+        <div className="border-b border-border/50 bg-background/80 backdrop-blur-sm px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#E94560]/20 to-violet-500/10 border border-[#E94560]/20">
+                <Settings className="h-5 w-5 text-[#E94560]" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight">Paramètres</h1>
+                <p className="text-xs text-muted-foreground">
+                  Modèles, intégrations, sécurité et données
+                </p>
+              </div>
+              {isDirty && (
+                <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                  Modifications non enregistrées
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={handleReset}
+                disabled={isLoading || isSaving || !settings}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Réinitialiser
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 text-xs gap-1.5 bg-[#E94560] hover:bg-[#D63B54] text-white"
+                onClick={handleSubmit(onSave)}
+                disabled={isLoading || isSaving || !canSave}
+              >
+                {isSaving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+                {isSaving ? "Enregistrement…" : "Enregistrer"}
+              </Button>
+            </div>
+          </div>
 
-      <main className="container mx-auto max-w-3xl space-y-6 px-4 py-6 pb-12">
-        <Accordion type="multiple" className="w-full space-y-4">
-          <ModelSettingsSection
-            values={model}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-          <WebhooksSection
-            pipelineWebhook={pipelineWebhook}
-            jobCompleteWebhook={jobCompleteWebhook}
-            webhookSecretHint={envSettings.private.webhookSecretHint}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-          <ReactiveResumeSection
-            rxResumeBaseResumeIdDraft={rxResumeBaseResumeIdDraft}
-            onRxresumeModeChange={(mode) => {
-              const nextId = getBaseResumeIdForMode(mode);
-              setRxResumeBaseResumeIdDraft(nextId);
-              setValue("rxresumeBaseResumeId", nextId, { shouldDirty: true });
-              setRxResumeProjectsOverride(null);
-            }}
-            setRxResumeBaseResumeIdDraft={(value) => {
-              const mode = (getValues("rxresumeMode") ??
-                rxresumeMode) as RxResumeMode;
-              setBaseResumeIdForMode(mode, value);
-              setRxResumeBaseResumeIdDraft(value);
-              setValue("rxresumeBaseResumeId", value, { shouldDirty: true });
-            }}
-            hasRxResumeAccess={hasRxResumeAccess}
-            rxresumeMode={rxresumeMode}
-            validationStatuses={rxresumeValidationStatuses}
-            profileProjects={effectiveProfileProjects}
-            lockedCount={lockedCount}
-            maxProjectsTotal={effectiveMaxProjectsTotal}
-            isProjectsLoading={isFetchingRxResumeProjects}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-          <TracerLinksSettingsSection
-            readiness={tracerReadiness}
-            isLoading={isLoading || isTracerReadinessLoading}
-            isChecking={isTracerReadinessChecking}
-            onVerifyNow={handleVerifyTracerReadiness}
-          />
-          <DisplaySettingsSection
-            values={display}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-          <ChatSettingsSection
-            values={chat}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-          <ScoringSettingsSection
-            values={scoring}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-          <EnvironmentSettingsSection
-            values={envSettings}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-          <BackupSettingsSection
-            values={backup}
-            backups={backups}
-            nextScheduled={nextScheduled}
-            isLoading={isLoading || isLoadingBackups}
-            isSaving={isSaving}
-            onCreateBackup={handleCreateBackup}
-            onDeleteBackup={handleDeleteBackup}
-            isCreatingBackup={isCreatingBackup}
-            isDeletingBackup={isDeletingBackup}
-          />
-          <DangerZoneSection
-            statusesToClear={statusesToClear}
-            toggleStatusToClear={toggleStatusToClear}
-            handleClearByStatuses={handleClearByStatuses}
-            handleClearDatabase={handleClearDatabase}
-            handleClearByScore={handleClearByScore}
-            isLoading={isLoading}
-            isSaving={isSaving}
-          />
-        </Accordion>
+          {/* Tabs */}
+          <Tabs defaultValue="general" className="mt-4 flex flex-col flex-1 min-h-0">
+            <TabsList className="h-9 w-full justify-start rounded-lg bg-muted/30 p-1 flex-wrap gap-1 shrink-0">
+              <TabsTrigger
+                value="general"
+                className="text-xs data-[state=active]:bg-[#E94560]/10 data-[state=active]:text-[#E94560]"
+              >
+                <Sliders className="mr-1.5 h-3.5 w-3.5" />
+                Général
+              </TabsTrigger>
+              <TabsTrigger
+                value="integrations"
+                className="text-xs data-[state=active]:bg-[#E94560]/10 data-[state=active]:text-[#E94560]"
+              >
+                <Plug className="mr-1.5 h-3.5 w-3.5" />
+                Intégrations
+              </TabsTrigger>
+              <TabsTrigger
+                value="security"
+                className="text-xs data-[state=active]:bg-[#E94560]/10 data-[state=active]:text-[#E94560]"
+              >
+                <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                Sécurité & comptes
+              </TabsTrigger>
+              <TabsTrigger
+                value="data"
+                className="text-xs data-[state=active]:bg-[#E94560]/10 data-[state=active]:text-[#E94560]"
+              >
+                <Database className="mr-1.5 h-3.5 w-3.5" />
+                Données
+              </TabsTrigger>
+              <TabsTrigger
+                value="danger"
+                className="text-xs data-[state=active]:bg-red-500/10 data-[state=active]:text-red-400"
+              >
+                <ShieldAlert className="mr-1.5 h-3.5 w-3.5" />
+                Zone de danger
+              </TabsTrigger>
+            </TabsList>
 
-        <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={handleSubmit(onSave)}
-            disabled={isLoading || isSaving || !canSave}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            disabled={isLoading || isSaving || !settings}
-          >
-            Reset to default
-          </Button>
+            <TabsContent value="general" className="mt-4 flex-1 overflow-y-auto min-h-0 data-[state=inactive]:hidden">
+              <main className="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-12">
+                <Accordion type="multiple" className="w-full space-y-4">
+                  <ModelSettingsSection
+                    values={model}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                  <DisplaySettingsSection
+                    values={display}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                  <ChatSettingsSection
+                    values={chat}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                  <ScoringSettingsSection
+                    values={scoring}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                </Accordion>
+              </main>
+            </TabsContent>
+
+            <TabsContent value="integrations" className="mt-4 flex-1 overflow-y-auto min-h-0 data-[state=inactive]:hidden">
+              <main className="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-12">
+                <Accordion type="multiple" className="w-full space-y-4">
+                  <WebhooksSection
+                    pipelineWebhook={pipelineWebhook}
+                    jobCompleteWebhook={jobCompleteWebhook}
+                    webhookSecretHint={envSettings.private.webhookSecretHint}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                  <ReactiveResumeSection
+                    rxResumeBaseResumeIdDraft={rxResumeBaseResumeIdDraft}
+                    onRxresumeModeChange={(mode) => {
+                      const nextId = getBaseResumeIdForMode(mode);
+                      setRxResumeBaseResumeIdDraft(nextId);
+                      setValue("rxresumeBaseResumeId", nextId, { shouldDirty: true });
+                      setRxResumeProjectsOverride(null);
+                    }}
+                    setRxResumeBaseResumeIdDraft={(value) => {
+                      const mode = (getValues("rxresumeMode") ??
+                        rxresumeMode) as RxResumeMode;
+                      setBaseResumeIdForMode(mode, value);
+                      setRxResumeBaseResumeIdDraft(value);
+                      setValue("rxresumeBaseResumeId", value, { shouldDirty: true });
+                    }}
+                    hasRxResumeAccess={hasRxResumeAccess}
+                    rxresumeMode={rxresumeMode}
+                    validationStatuses={rxresumeValidationStatuses}
+                    profileProjects={effectiveProfileProjects}
+                    lockedCount={lockedCount}
+                    maxProjectsTotal={effectiveMaxProjectsTotal}
+                    isProjectsLoading={isFetchingRxResumeProjects}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                  <TracerLinksSettingsSection
+                    readiness={tracerReadiness}
+                    isLoading={isLoading || isTracerReadinessLoading}
+                    isChecking={isTracerReadinessChecking}
+                    onVerifyNow={handleVerifyTracerReadiness}
+                  />
+                </Accordion>
+              </main>
+            </TabsContent>
+
+            <TabsContent value="security" forceMount className="mt-4 flex-1 overflow-y-auto min-h-0 data-[state=inactive]:hidden">
+              <main className="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-12">
+                <Accordion type="multiple" className="w-full space-y-4">
+                  <EnvironmentSettingsSection
+                    values={envSettings}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                </Accordion>
+              </main>
+            </TabsContent>
+
+            <TabsContent value="data" className="mt-4 flex-1 overflow-y-auto min-h-0 data-[state=inactive]:hidden">
+              <main className="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-12">
+                <Accordion type="multiple" className="w-full space-y-4">
+                  <BackupSettingsSection
+                    values={backup}
+                    backups={backups}
+                    nextScheduled={nextScheduled}
+                    isLoading={isLoading || isLoadingBackups}
+                    isSaving={isSaving}
+                    onCreateBackup={handleCreateBackup}
+                    onDeleteBackup={handleDeleteBackup}
+                    isCreatingBackup={isCreatingBackup}
+                    isDeletingBackup={isDeletingBackup}
+                  />
+                </Accordion>
+              </main>
+            </TabsContent>
+
+            <TabsContent value="danger" forceMount className="mt-4 flex-1 overflow-y-auto min-h-0 data-[state=inactive]:hidden">
+              <main className="container mx-auto max-w-3xl space-y-4 px-4 py-6 pb-12">
+                <Accordion type="multiple" className="w-full space-y-4">
+                  <DangerZoneSection
+                    statusesToClear={statusesToClear}
+                    toggleStatusToClear={toggleStatusToClear}
+                    handleClearByStatuses={handleClearByStatuses}
+                    handleClearDatabase={handleClearDatabase}
+                    handleClearByScore={handleClearByScore}
+                    isLoading={isLoading}
+                    isSaving={isSaving}
+                  />
+                </Accordion>
+              </main>
+            </TabsContent>
+          </Tabs>
         </div>
+
         {Object.keys(errors).length > 0 && (
-          <div className="text-destructive text-sm mt-2">
-            Please fix the errors before saving.
+          <div className="border-t border-border/50 bg-destructive/5 px-6 py-2 text-destructive text-sm">
+            Veuillez corriger les erreurs avant d’enregistrer.
           </div>
         )}
-      </main>
+      </div>
     </FormProvider>
   );
 };

@@ -1430,6 +1430,20 @@ export async function updateVisaSponsorList(): Promise<{
   });
 }
 
+export async function updateVisaSponsorProvider(
+  providerId: string,
+): Promise<{
+  message: string;
+  status: VisaSponsorStatusResponse;
+}> {
+  return fetchApi<{
+    message: string;
+    status: VisaSponsorStatusResponse;
+  }>(`/visa-sponsors/update/${encodeURIComponent(providerId)}`, {
+    method: "POST",
+  });
+}
+
 // Multi-job operations (intentionally none - processing is manual)
 
 // Backup API

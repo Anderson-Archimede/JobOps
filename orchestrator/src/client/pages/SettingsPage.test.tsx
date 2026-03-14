@@ -63,6 +63,28 @@ const openModelSection = async () => {
   fireEvent.click(modelTrigger);
 };
 
+const openDangerZoneTab = async () => {
+  const tab = await screen.findByRole("tab", { name: /zone de danger/i });
+  fireEvent.click(tab);
+  await waitFor(() => {
+    expect(
+      screen.getByRole("button", { name: /danger zone/i }),
+    ).toBeVisible();
+  });
+};
+
+const openSecurityTab = async () => {
+  const tab = await screen.findByRole("tab", {
+    name: /sécurité & comptes/i,
+  });
+  fireEvent.click(tab);
+  await waitFor(() => {
+    expect(
+      screen.getByRole("button", { name: /environment & accounts/i }),
+    ).toBeVisible();
+  });
+};
+
 describe("SettingsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -100,7 +122,7 @@ describe("SettingsPage", () => {
     await waitFor(() => expect(modelInput).toBeEnabled());
     fireEvent.change(modelInput, { target: { value: "  gpt-4  " } });
 
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = screen.getByRole("button", { name: /enregistrer/i });
     await waitFor(() => expect(saveButton).toBeEnabled());
 
     fireEvent.click(saveButton);
@@ -134,7 +156,7 @@ describe("SettingsPage", () => {
     ).toBeInTheDocument();
 
     // Save button should be disabled due to validation error (isValid will be false)
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = screen.getByRole("button", { name: /enregistrer/i });
     expect(saveButton).toBeDisabled();
   });
 
@@ -147,6 +169,7 @@ describe("SettingsPage", () => {
 
     renderPage();
 
+    await openDangerZoneTab();
     const dangerTrigger = await screen.findByRole("button", {
       name: /danger zone/i,
     });
@@ -176,7 +199,9 @@ describe("SettingsPage", () => {
   it("enables save button when model is changed", async () => {
     vi.mocked(api.getSettings).mockResolvedValue(baseSettings);
     renderPage();
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = await screen.findByRole("button", {
+      name: /enregistrer/i,
+    });
     expect(saveButton).toBeDisabled();
     await openModelSection();
 
@@ -210,7 +235,9 @@ describe("SettingsPage", () => {
   it("enables save button when display setting is changed", async () => {
     vi.mocked(api.getSettings).mockResolvedValue(baseSettings);
     renderPage();
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = await screen.findByRole("button", {
+      name: /enregistrer/i,
+    });
 
     const displayTrigger = await screen.findByRole("button", {
       name: /display settings/i,
@@ -245,7 +272,7 @@ describe("SettingsPage", () => {
     );
     fireEvent.click(sponsorCheckbox);
 
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = screen.getByRole("button", { name: /enregistrer/i });
     await waitFor(() => expect(saveButton).toBeEnabled());
     fireEvent.click(saveButton);
 
@@ -259,8 +286,11 @@ describe("SettingsPage", () => {
   it("enables save button when basic auth toggle is changed", async () => {
     vi.mocked(api.getSettings).mockResolvedValue(baseSettings);
     renderPage();
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = await screen.findByRole("button", {
+      name: /enregistrer/i,
+    });
 
+    await openSecurityTab();
     const envTrigger = await screen.findByRole("button", {
       name: /environment & accounts/i,
     });
@@ -283,6 +313,7 @@ describe("SettingsPage", () => {
 
     renderPage();
 
+    await openSecurityTab();
     const envTrigger = await screen.findByRole("button", {
       name: /environment & accounts/i,
     });
@@ -295,7 +326,7 @@ describe("SettingsPage", () => {
     fireEvent.click(authCheckbox);
     expect(authCheckbox).not.toBeChecked();
 
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = screen.getByRole("button", { name: /enregistrer/i });
     expect(saveButton).toBeEnabled();
     fireEvent.click(saveButton);
 
@@ -330,7 +361,7 @@ describe("SettingsPage", () => {
     fireEvent.change(input, { target: { value: "staffing" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = screen.getByRole("button", { name: /enregistrer/i });
     await waitFor(() => expect(saveButton).toBeEnabled());
     fireEvent.click(saveButton);
 
@@ -370,7 +401,7 @@ describe("SettingsPage", () => {
       },
     });
 
-    const saveButton = screen.getByRole("button", { name: /^save$/i });
+    const saveButton = screen.getByRole("button", { name: /enregistrer/i });
     await waitFor(() => expect(saveButton).toBeEnabled());
     fireEvent.click(saveButton);
 
