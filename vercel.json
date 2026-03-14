@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "cd orchestrator && npm run vercel-build",
   "outputDirectory": "orchestrator/dist/client",
-  "installCommand": "npm ci --workspace orchestrator --workspace shared --include-workspace-root",
+  "installCommand": "npm ci --workspaces --include-workspace-root",
   "framework": null,
   "rewrites": [
     {
