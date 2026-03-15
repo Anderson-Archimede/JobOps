@@ -36,6 +36,8 @@ import { seekerProfileRouter } from "./routes/seeker-profile";
 import { seekerJobsRouter } from "./routes/seeker-jobs";
 import { seekerInterviewRouter } from "./routes/seeker-interview";
 import { seekerSkillsDNARouter } from "./routes/seeker-skills-dna";
+import { seekerCareerPathRouter } from "./routes/seeker-career-path";
+import { seekerAutopilotRouter } from "./routes/seeker-autopilot";
 
 export const apiRouter = Router();
 
@@ -74,3 +76,5 @@ apiRouter.use("/seeker", authenticateJWT, scrapingRouter);
 apiRouter.use("/seeker", authenticateJWT, seekerJobsRouter);
 apiRouter.use("/seeker", authenticateJWT, seekerInterviewRouter);
 apiRouter.use("/seeker", authenticateJWT, seekerSkillsDNARouter);
+apiRouter.use("/seeker", authenticateJWT, seekerCareerPathRouter);
+apiRouter.use("/seeker", authenticateJWT, seekerAutopilotRouter);

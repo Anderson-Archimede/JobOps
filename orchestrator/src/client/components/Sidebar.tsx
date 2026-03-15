@@ -31,6 +31,8 @@ import {
   Target,
   Shield,
   Link2,
+  TrendingUp,
+  Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -119,6 +121,20 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Skills DNA',
         icon: Target,
         path: '/skills-dna',
+      },
+      {
+        id: 'career-path',
+        label: 'Career Path',
+        icon: TrendingUp,
+        path: '/career-path',
+        badge: 'NEW',
+      },
+      {
+        id: 'autopilot',
+        label: 'Autopilot',
+        icon: Rocket,
+        path: '/autopilot',
+        badge: 'NEW',
       },
     ],
   },

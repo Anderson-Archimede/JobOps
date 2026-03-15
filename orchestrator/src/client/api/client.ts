@@ -49,9 +49,8 @@ import type {
   VisaSponsorStatusResponse,
 } from "@shared/types";
 import { bucketQueryLength, trackProductEvent } from "@/lib/analytics";
+import { API_BASE, API_TIMEOUT_MS } from "@/lib/apiBase";
 import { showDemoBlockedToast, showDemoSimulatedToast } from "@/lib/demo-toast";
-
-const API_BASE = "/api";
 
 class ApiClientError extends Error {
   requestId?: string;
@@ -258,10 +257,28 @@ async function fetchAndParse<T>(
     ...normalizeHeaders(options?.headers),
   };
   if (authHeader) headers.Authorization = authHeader;
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const signal =
+    options?.signal ??
+    (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal
+      ? AbortSignal.timeout(API_TIMEOUT_MS)
+      : undefined);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+      signal,
+      credentials: API_BASE.startsWith("http") ? "include" : undefined,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new ApiClientError(
+        "Le backend met trop de temps à répondre. Réessayez dans un instant (démarrage du serveur possible).",
+        { code: "TIMEOUT" },
+      );
+    }
+    throw err;
+  }
 
   const text = await response.text();
 

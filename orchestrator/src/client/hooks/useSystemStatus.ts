@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { fetchApi } from '@/lib/apiBase';
 
 export type SystemStatus = 'healthy' | 'degraded' | 'down';
 
@@ -34,7 +35,7 @@ export function useSystemStatus(options: UseSystemStatusOptions = {}) {
 
   const fetchHealth = useCallback(async () => {
     try {
-      const response = await fetch('/api/health', {
+      const response = await fetchApi('health', {
         headers: {
           'Content-Type': 'application/json',
         },

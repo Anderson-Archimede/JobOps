@@ -163,7 +163,26 @@ export function createApp() {
     }
   };
 
-  app.use(cors());
+  // CORS: when frontend calls this API from another origin (e.g. Vercel → Render),
+  // allow listed origins with credentials so auth cookies work.
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
+    : null;
+  app.use(
+    cors({
+      origin:
+        allowedOrigins && allowedOrigins.length > 0
+          ? (origin, cb) => {
+              if (!origin || allowedOrigins.includes(origin)) {
+                cb(null, true);
+              } else {
+                cb(null, false);
+              }
+            }
+          : true,
+      credentials: allowedOrigins != null && allowedOrigins.length > 0,
+    }),
+  );
   app.use(cookieParser());
   app.use(requestContextMiddleware());
   app.use(express.json({ limit: "5mb" }));

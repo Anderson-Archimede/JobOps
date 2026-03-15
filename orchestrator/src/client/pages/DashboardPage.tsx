@@ -20,6 +20,7 @@ import {
   Database,
   Sparkles,
 } from 'lucide-react';
+import { fetchApi } from "@/lib/apiBase";
 import { ScrapingModal } from '@client/components/dashboard/ScrapingModal';
 import { InterviewPrepModal } from '@client/components/dashboard/InterviewPrepModal';
 import {
@@ -204,13 +205,13 @@ export const DashboardPage: React.FC = () => {
         setError('');
         
         const responses = await Promise.allSettled([
-          fetch('/api/analytics/kpis'),
-          fetch('/api/analytics/daily'),
-          fetch('/api/analytics/status-distribution'),
-          fetch('/api/analytics/top-companies'),
-          fetch('/api/analytics/activity'),
-          fetch('/api/analytics/datasets-summary'),
-          fetch('/api/seeker/dashboard'),
+          fetchApi('analytics/kpis'),
+          fetchApi('analytics/daily'),
+          fetchApi('analytics/status-distribution'),
+          fetchApi('analytics/top-companies'),
+          fetchApi('analytics/activity'),
+          fetchApi('analytics/datasets-summary'),
+          fetchApi('seeker/dashboard'),
         ]);
 
         // Check each response status before parsing
@@ -246,9 +247,12 @@ export const DashboardPage: React.FC = () => {
         }
         
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load dashboard data';
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Impossible de charger le dashboard. Vérifiez que le backend est démarré.";
         setError(errorMessage);
-        console.error('Dashboard error:', err);
+        console.error("Dashboard error:", err);
       } finally {
         setIsLoading(false);
       }
@@ -261,7 +265,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchNewJobsCount = async () => {
       try {
-        const response = await fetch('/api/seeker/jobs/count-new');
+        const response = await fetchApi('seeker/jobs/count-new');
         if (response.ok) {
           const data = await response.json();
           setNewJobsCount(data.count ?? 0);

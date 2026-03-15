@@ -36,6 +36,8 @@ import { TracerLinksPage } from "./pages/TracerLinksPage";
 import { TrackingInboxPage } from "./pages/TrackingInboxPage";
 import { VisaSponsorsPage } from "./pages/VisaSponsorsPage";
 import { SkillsDNAPage } from "./pages/SkillsDNAPage";
+import { CareerPathPage } from "./pages/CareerPathPage";
+import { AutopilotPage } from "./pages/AutopilotPage";
 import { InterviewCoachPage } from "./pages/InterviewCoachPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -168,6 +170,8 @@ function AppContent() {
                   {/* Protected Routes */}
                   <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                   <Route path="/skills-dna" element={<ProtectedRoute><SkillsDNAPage /></ProtectedRoute>} />
+                  <Route path="/career-path" element={<ProtectedRoute><CareerPathPage /></ProtectedRoute>} />
+                  <Route path="/autopilot" element={<ProtectedRoute><AutopilotPage /></ProtectedRoute>} />
                   <Route path="/overview" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
                   <Route path="/jobs/:tab" element={<ProtectedRoute><OrchestratorPage /></ProtectedRoute>} />
                   <Route path="/jobs/:tab/:jobId" element={<ProtectedRoute><OrchestratorPage /></ProtectedRoute>} />

@@ -6,6 +6,9 @@
  */
 
 export * from "./types/api";
+export * from "./types/auth";
+export * from "./types/autopilot";
+export * from "./types/careerPath";
 export * from "./types/chat";
 export * from "./types/extractors";
 export * from "./types/jobs";

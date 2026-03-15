@@ -23,8 +23,7 @@ import type {
   DatasetPreview,
   DatasetStats,
 } from "@shared/types/dataset";
-
-const API_BASE = "/api";
+import { fetchApi, getApiBase } from "@/lib/apiBase";
 
 const DATASET_TYPE_LABELS: Record<DatasetType, string> = {
   job_postings: "Job Postings",
@@ -72,6 +71,7 @@ export function DatasetsPage() {
   const [stats, setStats] = useState<DatasetStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<DatasetType | "all">("all");
   const [dragActive, setDragActive] = useState(false);
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null);
@@ -81,24 +81,28 @@ export function DatasetsPage() {
 
   const fetchDatasets = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/datasets`);
+      setFetchError(null);
+      const res = await fetchApi("datasets");
       const data = await res.json();
       if (data.ok) {
         setDatasets(data.datasets);
       }
     } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erreur chargement des datasets";
+      setFetchError(msg);
       console.error("Failed to fetch datasets:", error);
     }
   }, []);
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/datasets/stats`);
+      const res = await fetchApi("datasets/stats");
       const data = await res.json();
       if (data.ok) {
         setStats(data.stats);
       }
     } catch (error) {
+      setFetchError((prev) => prev ?? (error instanceof Error ? error.message : "Erreur chargement des stats"));
       console.error("Failed to fetch stats:", error);
     }
   }, []);
@@ -141,7 +145,7 @@ export function DatasetsPage() {
     formData.append("type", type);
 
     try {
-      const res = await fetch(`${API_BASE}/datasets/import`, {
+      const res = await fetchApi("datasets/import", {
         method: "POST",
         body: formData,
       });
@@ -171,7 +175,7 @@ export function DatasetsPage() {
     if (!confirm("Are you sure you want to delete this dataset?")) return;
 
     try {
-      const res = await fetch(`${API_BASE}/datasets/${id}`, {
+      const res = await fetchApi(`datasets/${id}`, {
         method: "DELETE",
       });
 
@@ -191,7 +195,7 @@ export function DatasetsPage() {
     setPreviewLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/datasets/${dataset.id}/preview`);
+      const res = await fetchApi(`datasets/${dataset.id}/preview`);
       const data = await res.json();
 
       if (data.ok) {
@@ -209,7 +213,7 @@ export function DatasetsPage() {
 
   const handleExport = async (dataset: Dataset, format: "csv" | "json" | "xlsx") => {
     try {
-      const url = `${API_BASE}/datasets/${dataset.id}/export?format=${format}`;
+      const url = `${getApiBase()}/datasets/${dataset.id}/export?format=${format}`;
       window.open(url, "_blank");
     } catch (error) {
       console.error("Export error:", error);
@@ -232,8 +236,26 @@ export function DatasetsPage() {
     );
   }
 
+  const retryFetch = () => {
+    setFetchError(null);
+    setLoading(true);
+    Promise.all([fetchDatasets(), fetchStats()]).finally(() => setLoading(false));
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6">
+      {fetchError && (
+        <div className="max-w-7xl mx-auto mb-4 flex items-center justify-between gap-4 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-200">
+          <span className="text-sm">{fetchError}</span>
+          <button
+            type="button"
+            onClick={retryFetch}
+            className="shrink-0 rounded bg-amber-500/20 px-3 py-1.5 text-sm font-medium hover:bg-amber-500/30"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <div className="flex items-center justify-between mb-6">

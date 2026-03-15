@@ -57,6 +57,7 @@ JobOps ships with full docs for setup, architecture, extractors, and troubleshoo
 - [Validation Report](./VALIDATION_REPORT.md) - Latest stability and test results
 - [Changelog](./CHANGELOG.md) - Recent improvements and fixes
 - [Port Management Guide](./PORT_MANAGEMENT.md) - Automatic port detection and configuration
+- [SlimToolkit (images minifiées)](./docs/SLIM.md) - Build d’images Docker minifiées avec Slim
 
 ### 📋 Implementation Documentation
 

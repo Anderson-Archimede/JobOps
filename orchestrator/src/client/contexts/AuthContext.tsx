@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import type { User, AuthResponse } from "@shared/types/auth";
+import { getApiBase } from "@/lib/apiBase";
 import { setAccessToken as setInterceptorToken } from "../utils/axiosInterceptor";
 import { toast } from "sonner";
 
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
-      const response = await fetch("/api/auth/refresh", {
+      const response = await fetch(`${getApiBase()}/auth/refresh`, {
         method: "POST",
         credentials: "include",
       });
@@ -61,9 +62,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const resData = await response.json();
       if (resData.ok) {
         updateAccessToken(resData.data.accessToken);
-        
+
         // Fetch user data if we have a token
-        const userResponse = await fetch("/api/auth/me", {
+        const userResponse = await fetch(`${getApiBase()}/auth/me`, {
           headers: {
             Authorization: `Bearer ${resData.data.accessToken}`,
           },
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [updateAccessToken]);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch("/api/auth/login", {
+    const response = await fetch(`${getApiBase()}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -104,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, firstName?: string, lastName?: string) => {
-    const response = await fetch("/api/auth/register", {
+    const response = await fetch(`${getApiBase()}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password, firstName, lastName }),
@@ -122,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", {
+      await fetch(`${getApiBase()}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -148,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let serverWantsAuth = false;
       try {
-        const healthRes = await fetch("/api/health", { signal: AbortSignal.timeout(4000) });
+        const healthRes = await fetch(`${getApiBase()}/health`, { signal: AbortSignal.timeout(4000) });
         const healthData = await healthRes.json().catch(() => ({}));
         serverWantsAuth = healthData.authEnabled === true;
       } catch {

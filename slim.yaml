@@ -1,0 +1,30 @@
+# =============================================================================
+# Configuration SlimToolkit (slim build) - Job Ops
+# =============================================================================
+# Ce fichier décrit le service et les options utilisées par les scripts
+# scripts/build-slim.ps1 et scripts/build-slim.sh pour minifier l'image Docker.
+# =============================================================================
+
+# Service exposé (aligné sur docker-compose)
+services:
+  job-ops:
+    domain: job-ops
+    port: 3005          # port hôte (mapping depuis le conteneur)
+    container_port: 3001
+
+# Image cible pour slim build
+target:
+  # Image Docker à minifier (construite localement ou déjà présente)
+  image: job-ops:full
+  # Tag de l'image minifiée en sortie
+  slim_tag: job-ops:slim
+
+# Options SlimToolkit
+# - HTTP probe : Slim lance le conteneur et appelle cette URL pour détecter
+#   les fichiers nécessaires ; le healthcheck du Dockerfile utilise /health.
+slim:
+  http_probe: true
+  http_probe_cmd: "GET http://localhost:3001/health"
+  expose_ports: ["3001"]
+  # Reprise après la fin des sondes HTTP (probe | enter | nothing)
+  continue_after: probe
