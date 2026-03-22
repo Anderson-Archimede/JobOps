@@ -14,15 +14,20 @@ services:
       - key: DATABASE_URL
         sync: false
 
-      # Redis (for BullMQ queues) – your public RedisLabs endpoint
+      # Redis (for BullMQ queues) – set in Render Dashboard with password!
+      # Format: redis://default:YOUR_PASSWORD@host:port
       - key: REDIS_URL
-        value: "redis://redis-15891.crce198.eu-central-1-3.ec2.cloud.redislabs.com:15891"
+        sync: false
 
       # Disable JWT auth and run in guest mode (already supported par le code)
       - key: AUTH_ENABLED
         value: "false"
       - key: GUEST_USER_ID
         value: "00000000-0000-0000-0000-000000000001"
+
+      # Frontend URL for CORS (your Vercel deployment URL)
+      - key: FRONTEND_URL
+        value: "https://job-ops.vercel.app"
 
       # Public base URL of this Render service (used pour tracer links / front)
       - key: JOBOPS_PUBLIC_BASE_URL

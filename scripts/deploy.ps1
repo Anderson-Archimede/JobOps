@@ -32,7 +32,7 @@ function Deploy-Vercel {
     try {
         # Requires: vercel link (once) or VERCEL_ORG_ID + VERCEL_PROJECT_ID
         # For CI: set VERCEL_TOKEN from https://vercel.com/account/tokens
-        npx vercel deploy --prod --yes --scope $VercelScope
+        npx vercel deploy --prod --yes
     } finally {
         Pop-Location
     }

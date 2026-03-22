@@ -17,8 +17,11 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 // Redis connection options (compatible with BullMQ's internal ioredis)
 const redisConnectionOptions: RedisOptions = {
   maxRetriesPerRequest: null,
+  lazyConnect: true,           // Don't block startup if Redis is unavailable
+  enableReadyCheck: false,     // Avoid blocking on READONLY checks
   retryStrategy: (times: number) => {
-    const delay = Math.min(times * 50, 2000);
+    const delay = Math.min(times * 200, 5000);
+    console.warn(`[Redis] Reconnect attempt #${times}, next retry in ${delay}ms`);
     return delay;
   },
   reconnectOnError: (err: Error) => {

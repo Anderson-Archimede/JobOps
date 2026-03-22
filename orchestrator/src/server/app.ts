@@ -103,9 +103,17 @@ export function createApp() {
   const authGuard = createBasicAuthGuard();
 
   // Initialize Redis for auth blacklist and rate limiting
+  // Non-blocking: if Redis is unavailable, the server still starts in degraded mode
   const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
-  const redisClient = initRedisBlacklist(redisUrl);
-  initRateLimiter(redisClient);
+  try {
+    const redisClient = initRedisBlacklist(redisUrl);
+    initRateLimiter(redisClient);
+    logger.info("Redis initialized successfully", { url: redisUrl.replace(/\/\/.*@/, "//***@") });
+  } catch (error) {
+    logger.warn("Failed to initialize Redis – server will run without rate limiting and token blacklist", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   // Bull Board setup for queue monitoring
   const serverAdapter = new ExpressAdapter();
@@ -163,26 +171,30 @@ export function createApp() {
     }
   };
 
-  // CORS: when frontend calls this API from another origin (e.g. Vercel → Render),
-  // allow listed origins with credentials so auth cookies work.
-  const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)
-    : null;
-  app.use(
-    cors({
-      origin:
-        allowedOrigins && allowedOrigins.length > 0
-          ? (origin, cb) => {
-              if (!origin || allowedOrigins.includes(origin)) {
-                cb(null, true);
-              } else {
-                cb(null, false);
-              }
-            }
-          : true,
-      credentials: allowedOrigins != null && allowedOrigins.length > 0,
-    }),
-  );
+  // CORS: allow Vercel frontend, configured FRONTEND_URL, and localhost dev origins.
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.JOBOPS_PUBLIC_BASE_URL,
+    'http://localhost:5173',        // dev local (vite)
+    'http://localhost:3000',        // dev local alternatif
+    'http://localhost:3001',        // dev local (server self)
+  ].filter((o): o is string => typeof o === 'string' && o.length > 0);
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // Allow any *.vercel.app deployment (previews + production)
+      if (origin.endsWith('.vercel.app')) return callback(null, true);
+      // Allow explicitly listed origins
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
+  app.options('*', cors());           // preflight explicite
   app.use(cookieParser());
   app.use(requestContextMiddleware());
   app.use(express.json({ limit: "5mb" }));

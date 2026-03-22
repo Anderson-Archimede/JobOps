@@ -6,7 +6,15 @@ export function initRedisBlacklist(redisUrl: string) {
   redisClient = new Redis(redisUrl, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    lazyConnect: true, // Don't block startup
+    retryStrategy: (times: number) => Math.min(times * 200, 5000),
   });
+  
+  // Prevent unhandled error event crashes
+  redisClient.on("error", (err) => {
+    console.warn("[Redis Blacklist] Connection error:", err.message);
+  });
+
   return redisClient;
 }
 

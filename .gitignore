@@ -20,3 +20,5 @@ extractors/ukvisajobs/storage/
 .DS_Store
 Thumbs.db
 .vercel
+
+.vercel
